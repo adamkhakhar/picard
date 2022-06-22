@@ -2,7 +2,10 @@ Forked Repository Notes:
 - To retrieve `n` predictions, edit `configs/serve.json` `num_beams` to be greater than `n` and `num_return_sequences = n`.
 - Run `make serve`
   - If an exception: Manifest unknown, set `GIT_HEAD_REF` in `Makefile` to output of `git rev-parse HEAD` in `https://github.com/ServiceNow/picard`
-- Port forward to hit fastapi : `http://localhost:8000/docs#/default/ask_ask__db_id___question__get`
+- Query Model:
+  - Port Forward
+    - Port forward to hit fastapi : `http://localhost:8000/docs#/default/ask_ask__db_id___question__get`
+    - Programmatically interact with model : `seq2seq/programmatic_serve_seq2seq.py`
 
 <p align="center">
     <br>
