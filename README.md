@@ -1,4 +1,7 @@
-*ServiceNow completed its acquisition of Element AI on January 8, 2021. All references to Element AI in the materials that are part of this project should refer to ServiceNow.*
+Forked Repository Notes:
+- To retrieve `n` predictions, edit `configs/serve.json` `num_beams` to be greater than `n` and `num_return_sequences = n`.
+- Run `make serve`
+- Port forward to hit fastapi : `http://localhost:8000/docs#/default/ask_ask__db_id___question__get`
 
 <p align="center">
     <br>

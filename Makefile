@@ -12,15 +12,15 @@ BASE_DIR := $(shell pwd)
 
 .PHONY: init-buildkit
 init-buildkit:
-	docker buildx create \
+	podman buildx create \
 		--name buildx-local \
-		--driver docker-container \
+		--driver podman-container \
 		--driver-opt image=$(BUILDKIT_IMAGE),network=host \
 		--use
 
 .PHONY: del-buildkit
 del-buildkit:
-	docker buildx rm buildx-local
+	podman buildx rm buildx-local
 
 .PHONY: build-thrift-code
 build-thrift-code:
@@ -44,10 +44,10 @@ build-picard:
 .PHONY: build-dev-image
 build-dev-image:
 	ssh-add
-	docker buildx build \
+	podman buildx build \
 		--builder $(BUILDKIT_BUILDER) \
 		--ssh default=$(SSH_AUTH_SOCK) \
-		-f Dockerfile \
+		-f podmanfile \
 		--tag tscholak/$(DEV_IMAGE_NAME):$(GIT_HEAD_REF) \
 		--tag tscholak/$(DEV_IMAGE_NAME):cache \
 		--tag tscholak/$(DEV_IMAGE_NAME):devcontainer \
@@ -60,15 +60,15 @@ build-dev-image:
 
 .PHONY: pull-dev-image
 pull-dev-image:
-	docker pull tscholak/$(DEV_IMAGE_NAME):$(GIT_HEAD_REF)
+	podman pull tscholak/$(DEV_IMAGE_NAME):$(GIT_HEAD_REF)
 
 .PHONY: build-train-image
 build-train-image:
 	ssh-add
-	docker buildx build \
+	podman buildx build \
 		--builder $(BUILDKIT_BUILDER) \
 		--ssh default=$(SSH_AUTH_SOCK) \
-		-f Dockerfile \
+		-f podmanfile \
 		--tag tscholak/$(TRAIN_IMAGE_NAME):$(GIT_HEAD_REF) \
 		--tag tscholak/$(TRAIN_IMAGE_NAME):cache \
 		--build-arg BASE_IMAGE=$(BASE_IMAGE) \
@@ -80,15 +80,15 @@ build-train-image:
 
 .PHONY: pull-train-image
 pull-train-image:
-	docker pull tscholak/$(TRAIN_IMAGE_NAME):$(GIT_HEAD_REF)
+	podman pull tscholak/$(TRAIN_IMAGE_NAME):$(GIT_HEAD_REF)
 
 .PHONY: build-eval-image
 build-eval-image:
 	ssh-add
-	docker buildx build \
+	podman buildx build \
 		--builder $(BUILDKIT_BUILDER) \
 		--ssh default=$(SSH_AUTH_SOCK) \
-		-f Dockerfile \
+		-f podmanfile \
 		--tag tscholak/$(EVAL_IMAGE_NAME):$(GIT_HEAD_REF) \
 		--tag tscholak/$(EVAL_IMAGE_NAME):cache \
 		--build-arg BASE_IMAGE=$(BASE_IMAGE) \
@@ -100,14 +100,14 @@ build-eval-image:
 
 .PHONY: pull-eval-image
 pull-eval-image:
-	docker pull tscholak/$(EVAL_IMAGE_NAME):$(GIT_HEAD_REF)
+	podman pull tscholak/$(EVAL_IMAGE_NAME):$(GIT_HEAD_REF)
 
 .PHONY: train
 train: pull-train-image
 	mkdir -p -m 777 train
 	mkdir -p -m 777 transformers_cache
 	mkdir -p -m 777 wandb
-	docker run \
+	podman run \
 		-it \
 		--rm \
 		--user 13011:13011 \
@@ -123,7 +123,7 @@ train_cosql: pull-train-image
 	mkdir -p -m 777 train
 	mkdir -p -m 777 transformers_cache
 	mkdir -p -m 777 wandb
-	docker run \
+	podman run \
 		-it \
 		--rm \
 		--user 13011:13011 \
@@ -139,7 +139,7 @@ eval: pull-eval-image
 	mkdir -p -m 777 eval
 	mkdir -p -m 777 transformers_cache
 	mkdir -p -m 777 wandb
-	docker run \
+	podman run \
 		-it \
 		--rm \
 		--user 13011:13011 \
@@ -155,7 +155,7 @@ eval_cosql: pull-eval-image
 	mkdir -p -m 777 eval
 	mkdir -p -m 777 transformers_cache
 	mkdir -p -m 777 wandb
-	docker run \
+	podman run \
 		-it \
 		--rm \
 		--user 13011:13011 \
@@ -170,7 +170,7 @@ eval_cosql: pull-eval-image
 serve: pull-eval-image
 	mkdir -p -m 777 database
 	mkdir -p -m 777 transformers_cache
-	docker run \
+	podman run \
 		-it \
 		--rm \
 		--user 13011:13011 \
@@ -178,13 +178,14 @@ serve: pull-eval-image
 		--mount type=bind,source=$(BASE_DIR)/database,target=/database \
 		--mount type=bind,source=$(BASE_DIR)/transformers_cache,target=/transformers_cache \
 		--mount type=bind,source=$(BASE_DIR)/configs,target=/app/configs \
+		--mount type=bind,source=$(BASE_DIR)/seq2seq/serve_seq2seq.py,target=/app/seq2seq/serve_seq2seq.py \
 		tscholak/$(EVAL_IMAGE_NAME):$(GIT_HEAD_REF) \
 		/bin/bash -c "python seq2seq/serve_seq2seq.py configs/serve.json"
 
 .PHONY: prediction_output
 prediction_output: pull-eval-image
 	mkdir -p -m 777 prediction_output
-	docker run \
+	podman run \
 		-it \
 		--rm \
 		--user 13011:13011 \
