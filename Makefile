@@ -174,6 +174,7 @@ serve: pull-eval-image
 		-it \
 		--rm \
 		--user 13011:13011 \
+		--cpus=12 \
 		-p 8000:8000 \
 		--mount type=bind,source=$(BASE_DIR)/database,target=/database \
 		--mount type=bind,source=$(BASE_DIR)/transformers_cache,target=/transformers_cache \
