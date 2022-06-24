@@ -100,7 +100,7 @@ if __name__ == "__main__":
     result["number_predictions"] = args.numpred
     result["total_exec_time"] += int(time.time() - start)
     if "target_in_set" in result:
-        result["target_in_set"] = result["target_in_set"].update(target_in_set)
+        result["target_in_set"].update(target_in_set)
     else:
         result["target_in_set"] = target_in_set
     store_data(path_to_cache, result)
