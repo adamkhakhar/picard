@@ -37,7 +37,7 @@ def evaluate(
     path_to_train_spider=f"{os.path.dirname(os.path.dirname(os.path.realpath(__file__)))}/database/dev.json",
     startindx=0,
     endindx=200,
-    log_every=5
+    log_every=5,
 ):
     start = time.time()
     train = load_train_spider(path_to_train_spider)
@@ -54,7 +54,11 @@ def evaluate(
         for picard_prediction_ind in range(len(picard_result)):
             if flag_target_in_set:
                 continue
-            if type(picard_result) == list and picard_prediction_ind < len(picard_result) and check_if_equivalent(picard_result[picard_prediction_ind]["execution_results"], spider_result):
+            if (
+                type(picard_result) == list
+                and picard_prediction_ind < len(picard_result)
+                and check_if_equivalent(picard_result[picard_prediction_ind]["execution_results"], spider_result)
+            ):
                 flag_target_in_set = True
                 target_in_set[sample_ind] = picard_prediction_ind
         if not flag_target_in_set:
@@ -71,21 +75,32 @@ def store_data(fname, data):
         pickle.dump(data, f)
 
 
+def load_data(fname):
+    with open(fname, "rb") as f:
+        data = pickle.load(f)
+    return data
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser("Evaluate Picard.")
-    parser.add_argument('numpred', type=int)
-    parser.add_argument('--port', dest='port', type=int, default=8000)
-    parser.add_argument('--startindx', dest='startindx', type=int, default=0)
-    parser.add_argument('--endindx', dest='endindx', type=int, default=200)
-    parser.add_argument('--logevery', dest='logevery', type=int, default=1)
-    parser.add_argument('--debug', dest='debug', type=bool, default=True)
+    parser.add_argument("numpred", type=int)
+    parser.add_argument("--port", dest="port", type=int, default=8000)
+    parser.add_argument("--startindx", dest="startindx", type=int, default=0)
+    parser.add_argument("--endindx", dest="endindx", type=int, default=200)
+    parser.add_argument("--logevery", dest="logevery", type=int, default=1)
+    parser.add_argument("--debug", dest="debug", type=bool, default=True)
     args = parser.parse_args()
     DEBUG = args.debug
     if DEBUG:
         print(f"[Logging] Beginning evaluation. PORT: {args.port} | NUMBER PREDICTIONS: {args.numpred}")
     start = time.time()
-    target_in_set = evaluate(port=args.port,log_every=args.logevery,startindx=args.startindx,endindx=args.endindx)
-    result = {}
+    target_in_set = evaluate(port=args.port, log_every=args.logevery, startindx=args.startindx, endindx=args.endindx)
+    path_to_cache = f"{os.path.dirname(os.path.realpath(__file__))}/result_num_pred_{args.numpred}.pkl"
+    result = load_data(path_to_cache) if os.path.exists(path_to_cache) else {}
     result["number_predictions"] = args.numpred
-    result["total_exec_time"] = int(time.time() - start)
-    store_data(f"{os.path.dirname(os.path.realpath(__file__))}/result_num_pred_{args.numpred}.pkl", result)
+    result["total_exec_time"] += int(time.time() - start)
+    if "target_in_set" in result:
+        result["target_in_set"] = result["target_in_set"].update(target_in_set)
+    else:
+        result["target_in_set"] = target_in_set
+    store_data(path_to_cache, result)

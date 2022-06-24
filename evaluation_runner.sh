@@ -1,7 +1,7 @@
-for startindx in {0..0..30}
+for startindx in {0..195..15}
 do
-    make serve >> log &
+    make serve --ignore-errors >> log &
     sleep 30
-    python3 code-prediction-set/runner.py 1 --startindx $startindx --endindx $((startindx +31))
+    python3 code-prediction-set/runner.py 1 --startindx $startindx --endindx $((startindx +21))
     podman kill `podman ps -q`
 done
