@@ -95,10 +95,15 @@ if __name__ == "__main__":
         print(f"[Logging] Beginning evaluation. PORT: {args.port} | NUMBER PREDICTIONS: {args.numpred}")
     start = time.time()
     target_in_set = evaluate(port=args.port, log_every=args.logevery, startindx=args.startindx, endindx=args.endindx)
-    path_to_cache = f"{os.path.dirname(os.path.realpath(__file__))}/result_num_pred_{args.numpred}.pkl"
+    if not os.path.isdir(f"{os.path.dirname(os.path.realpath(__file__))}/results"):
+        os.mkdir(f"{os.path.dirname(os.path.realpath(__file__))}/results")
+    path_to_cache = f"{os.path.dirname(os.path.realpath(__file__))}/results/result_num_pred_{args.numpred}.pkl"
     result = load_data(path_to_cache) if os.path.exists(path_to_cache) else {}
     result["number_predictions"] = args.numpred
-    result["total_exec_time"] += int(time.time() - start)
+    if "total_exec_time" in result:
+        result["total_exec_time"] += int(time.time() - start)
+    else:
+        result["total_exec_time"] = int(time.time() - start)
     if "target_in_set" in result:
         result["target_in_set"].update(target_in_set)
     else:
