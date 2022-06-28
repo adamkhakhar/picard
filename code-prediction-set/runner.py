@@ -83,6 +83,7 @@ def load_data(fname):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser("Evaluate Picard.")
+    parser.add_argument("numbeam", type=int)
     parser.add_argument("numpred", type=int)
     parser.add_argument("--port", dest="port", type=int, default=8000)
     parser.add_argument("--startindx", dest="startindx", type=int, default=0)
@@ -97,7 +98,7 @@ if __name__ == "__main__":
     target_in_set = evaluate(port=args.port, log_every=args.logevery, startindx=args.startindx, endindx=args.endindx)
     if not os.path.isdir(f"{os.path.dirname(os.path.realpath(__file__))}/results"):
         os.mkdir(f"{os.path.dirname(os.path.realpath(__file__))}/results")
-    path_to_cache = f"{os.path.dirname(os.path.realpath(__file__))}/results/result_num_pred_{args.numpred}.pkl"
+    path_to_cache = f"{os.path.dirname(os.path.realpath(__file__))}/results/result_num_beam_{args.numbeam}__num_pred_{args.numpred}.pkl"
     result = load_data(path_to_cache) if os.path.exists(path_to_cache) else {}
     result["number_predictions"] = args.numpred
     if "total_exec_time" in result:

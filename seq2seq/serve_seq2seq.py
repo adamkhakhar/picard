@@ -124,9 +124,7 @@ def main():
             try:
                 return AskResponse(query=query, execution_results=conn.execute(query).fetchall())
             except OperationalError as e:
-                raise HTTPException(
-                    status_code=500, detail=f'while executing "{query}", the following error occurred: {e.args[0]}'
-                )
+                return AskResponse(query=query, execution_results=[])
 
         @app.get("/ask/{db_id}/{question}")
         def ask(db_id: str, question: str):

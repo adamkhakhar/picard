@@ -21,6 +21,7 @@ def update_config_num_beam_num_return(
     data = read_json_file(filepath)
     data["num_beams"] = num_beams
     data["num_return_sequences"] = num_return_sequences
+    write_dict_to_json(data, filepath)
 
 
 if __name__ == "__main__":
