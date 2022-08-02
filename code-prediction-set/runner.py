@@ -109,7 +109,7 @@ if __name__ == "__main__":
     start = time.time()
     if not os.path.isdir(f"{os.path.dirname(os.path.realpath(__file__))}/results"):
         os.mkdir(f"{os.path.dirname(os.path.realpath(__file__))}/results")
-    path_to_cache = f"{os.path.dirname(os.path.realpath(__file__))}/results/beam_size_{args.numbeam}/num_predictions_{args.numpred}/startindx_{args.startindx}"
+    path_to_cache = f"{os.path.dirname(os.path.realpath(__file__))}/results/t53b_with_prob_result_num_beam_{args.numbeam}__num_pred_{args.numpred}__store_preds_{str(args.store_preds)}.pkl"
     result = load_data(path_to_cache) if os.path.exists(path_to_cache) else {}
     if "target_in_set" in result and args.startindx in [x["sample_ind"] for x in result["target_in_set"]]:
         print("already exists. exiting")
