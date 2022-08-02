@@ -23,6 +23,24 @@ from sqlite3 import Connection, connect, OperationalError
 from seq2seq.utils.pipeline import Text2SQLGenerationPipeline, Text2SQLInput, get_schema
 from seq2seq.utils.picard_model_wrapper import PicardArguments, PicardLauncher, with_picard
 from seq2seq.utils.dataset import DataTrainingArguments
+import pickle
+
+
+PATH_TO_CACHED_DATA = os.path.dirname(os.path.realpath(__file__)) + "/tmp_cache.bin"
+INDEX_CURRENT_HOST = 0
+
+
+def store_data(fname, data):
+    with open(fname, "wb") as f:
+        pickle.dump(data, f)
+
+
+def load_data(fname):
+    if not os.path.exists(fname):
+        return []
+    with open(fname, "rb") as f:
+        data = pickle.load(f)
+    return data
 
 
 @dataclass
@@ -54,6 +72,7 @@ class BackendArguments:
 
 
 def main():
+    global INDEX_CURRENT_HOST
     # See all possible arguments by passing the --help flag to this program.
     parser = HfArgumentParser((PicardArguments, BackendArguments, DataTrainingArguments))
     picard_args: PicardArguments
@@ -100,6 +119,32 @@ def main():
             cache_dir=backend_args.cache_dir,
         )
 
+        def gen_wrapper(func):
+            def f(*args, **kwargs):
+                global INDEX_CURRENT_HOST
+                kwargs["output_scores"] = True
+                kwargs["return_dict_in_generate"] = True
+                output = func(*args, **kwargs)
+                sequences_scores = output.sequences_scores.cpu()
+                l_of_scores_cpu = []
+                for score in output.scores:
+                    l_of_scores_cpu.append(score.cpu())
+                cache = load_data(PATH_TO_CACHED_DATA)
+                cache.append(
+                    {
+                        "INDEX_CURRENT_HOST": INDEX_CURRENT_HOST,
+                        "sequences_scores": sequences_scores,
+                        "scores": l_of_scores_cpu,
+                    }
+                )
+                store_data(PATH_TO_CACHED_DATA, cache)
+                INDEX_CURRENT_HOST += 1
+                return output.sequences
+
+            return f
+
+        model.generate = gen_wrapper(model.generate)
+
         # Initalize generation pipeline
         pipe = Text2SQLGenerationPipeline(
             model=model,
@@ -119,7 +164,7 @@ def main():
         class AskResponse(BaseModel):
             query: str
             execution_results: list
-        
+
         def response(query: str, conn: Connection) -> AskResponse:
             try:
                 return AskResponse(query=query, execution_results=conn.execute(query).fetchall())
@@ -131,13 +176,15 @@ def main():
             try:
                 outputs = pipe(
                     inputs=Text2SQLInput(utterance=question, db_id=db_id),
-                    num_return_sequences=data_training_args.num_return_sequences
+                    num_return_sequences=data_training_args.num_return_sequences,
                 )
+                print("outputs serve_seq2seq", outputs)
             except OperationalError as e:
                 raise HTTPException(status_code=404, detail=e.args[0])
             try:
                 conn = connect(backend_args.db_path + "/" + db_id + "/" + db_id + ".sqlite")
-                return [response(query=output["generated_text"], conn=conn) for output in outputs]
+                picard_result = [response(query=output["generated_text"], conn=conn) for output in outputs]
+                return picard_result
             finally:
                 conn.close()
 
