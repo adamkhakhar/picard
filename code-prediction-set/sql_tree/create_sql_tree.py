@@ -2,6 +2,8 @@ import argparse
 import pickle
 import os
 import sys
+import spider_json_to_sexpr
+import traceback
 
 PICARD_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 
@@ -26,18 +28,33 @@ if __name__ == "__main__":
     assert args.beam in [16, 50]
     num_pred = 8 if args.beam == 16 else 25
     data = load_data(
-        f"{PICARD_DIR}/code-prediction-set/results/result_num_beam_{args.beam}__num_pred_{num_pred}__store_preds_{True}.pkl"
+        f"{PICARD_DIR}/code-prediction-set/results/prev_results/result_num_beam_{args.beam}__num_pred_{num_pred}__store_preds_{True}.pkl"
     )
+    cnt_sexpr_failure = 0
+    cnt_sexpr = 0
     for sample in data["target_in_set"]:
         if (sample["solution_in_set"] == -1) or (not args.includeCorrect):
             print("db_id", sample["db_id"])
             print("question", sample["question"])
             print("target\n", sample["solution_query"])
             path_to_sql = f'{PICARD_DIR}/database/{sample["db_id"]}/{sample["db_id"]}.sqlite'
-            print("path_to_sql", path_to_sql)
+
             schema = process_sql.Schema(process_sql.get_schema(path_to_sql))
             solution_tree = process_sql.get_sql(schema, sample["solution_query"])
-            print("tree", solution_tree)
+            print("spider tree", solution_tree)
+            sexpr = "ERROR"
+            try:
+                sexpr = spider_json_to_sexpr.spider_json_to_sexpr(solution_tree, sample["db_id"])
+                cnt_sexpr += 1
+            except AssertionError:
+                cnt_sexpr_failure += 1
+                pass
+            except Exception:
+                traceback.print_exc()
+                assert False
+                cnt_sexpr_failure += 1
+                pass
+            print("sexpr", sexpr)
             print("\tresult:")
             for res in sample["spider_solution"]:
                 print("\t", res)
@@ -48,12 +65,20 @@ if __name__ == "__main__":
                 print("\tprediction")
                 print("\t", res["query"])
                 solution_tree = "ERROR"
+                sexpr = "ERROR"
                 try:
                     solution_tree = process_sql.get_sql(schema, res["query"])
+                    sexpr = spider_json_to_sexpr.spider_json_to_sexpr(solution_tree, sample["db_id"])
+                    cnt_sexpr += 1
                 except Exception:
+                    cnt_sexpr_failure += 1
+                    traceback.print_exc()
                     pass
-                print("\t\ttree", solution_tree)
+                print("\t\tspider tree", solution_tree)
+                print("\t\tsexpr", sexpr)
                 print("\t\tresult:")
                 for output in res["execution_results"]:
                     print("\t\t", output)
                 print("\n")
+    print("SEXPR FAILURE CASES: ", cnt_sexpr_failure)
+    print("TOTAL_SEXPR_CREATED", cnt_sexpr)
