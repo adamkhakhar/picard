@@ -102,6 +102,7 @@ if __name__ == "__main__":
     parser.add_argument("--logevery", dest="logevery", type=int, default=1)
     parser.add_argument("--debug", dest="debug", type=bool, default=True)
     parser.add_argument("--store_preds", dest="store_preds", type=bool, default=True)
+    parser.add_argument("--ignore_rep", dest="ignore_rep", type=int, default=1)
     args = parser.parse_args()
     DEBUG = args.debug
     if DEBUG:
@@ -111,7 +112,11 @@ if __name__ == "__main__":
         os.mkdir(f"{os.path.dirname(os.path.realpath(__file__))}/results")
     path_to_cache = f"{os.path.dirname(os.path.realpath(__file__))}/results/t53b_with_prob_result_num_beam_{args.numbeam}__num_pred_{args.numpred}__store_preds_{str(args.store_preds)}.pkl"
     result = load_data(path_to_cache) if os.path.exists(path_to_cache) else {}
-    if "target_in_set" in result and args.startindx in [x["sample_ind"] for x in result["target_in_set"]]:
+    if (
+        bool(args.ignore_rep)
+        and "target_in_set" in result
+        and args.startindx in [x["sample_ind"] for x in result["target_in_set"]]
+    ):
         print("already exists. exiting")
         exit()
     target_in_set = evaluate(

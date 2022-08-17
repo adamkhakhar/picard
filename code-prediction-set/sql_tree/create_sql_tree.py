@@ -23,7 +23,11 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-b", "--beam", type=int)
     parser.add_argument("-i", dest="includeCorrect", type=int)
+    parser.add_argument("-include_spider_tree", dest="include_spider_tree", type=int)
+    parser.add_argument("-traceback", dest="traceback", type=int)
     parser.set_defaults(includeCorrect=1)
+    parser.set_defaults(include_spider_tree=0)
+    parser.set_defaults(traceback=0)
     args = parser.parse_args()
     assert args.beam in [16, 50]
     num_pred = 8 if args.beam == 16 else 25
@@ -41,7 +45,8 @@ if __name__ == "__main__":
 
             schema = process_sql.Schema(process_sql.get_schema(path_to_sql))
             solution_tree = process_sql.get_sql(schema, sample["solution_query"])
-            print("spider tree", solution_tree)
+            if args.include_spider_tree:
+                print("spider tree", solution_tree)
             sexpr = "ERROR"
             try:
                 sexpr = spider_json_to_sexpr.spider_json_to_sexpr(solution_tree, sample["db_id"])
@@ -50,8 +55,9 @@ if __name__ == "__main__":
                 cnt_sexpr_failure += 1
                 pass
             except Exception:
-                traceback.print_exc()
-                assert False
+                if args.traceback:
+                    traceback.print_exc()
+                # assert False
                 cnt_sexpr_failure += 1
                 pass
             print("sexpr", sexpr)
@@ -68,13 +74,22 @@ if __name__ == "__main__":
                 sexpr = "ERROR"
                 try:
                     solution_tree = process_sql.get_sql(schema, res["query"])
+                except Exception:
+                    print("\t GET Spider Tree ERROR")
+                    continue
+                try:
                     sexpr = spider_json_to_sexpr.spider_json_to_sexpr(solution_tree, sample["db_id"])
                     cnt_sexpr += 1
+                except AssertionError:
+                    cnt_sexpr_failure += 1
+                    pass
                 except Exception:
                     cnt_sexpr_failure += 1
-                    traceback.print_exc()
+                    if args.traceback:
+                        traceback.print_exc()
                     pass
-                print("\t\tspider tree", solution_tree)
+                if args.include_spider_tree:
+                    print("\t\tspider tree", solution_tree)
                 print("\t\tsexpr", sexpr)
                 print("\t\tresult:")
                 for output in res["execution_results"]:

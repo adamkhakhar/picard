@@ -28,6 +28,7 @@ import pickle
 
 PATH_TO_CACHED_DATA = os.path.dirname(os.path.realpath(__file__)) + "/tmp_cache.bin"
 INDEX_CURRENT_HOST = 0
+CACHE_PROBS = True
 
 
 def store_data(fname, data):
@@ -120,7 +121,10 @@ def main():
         )
 
         def gen_wrapper(func):
+            print("generate")
+
             def f(*args, **kwargs):
+                print(kwargs)
                 global INDEX_CURRENT_HOST
                 kwargs["output_scores"] = True
                 kwargs["return_dict_in_generate"] = True
@@ -129,16 +133,32 @@ def main():
                 l_of_scores_cpu = []
                 for score in output.scores:
                     l_of_scores_cpu.append(score.cpu())
+                print("loading_data")
                 cache = load_data(PATH_TO_CACHED_DATA)
                 cache.append(
                     {
                         "INDEX_CURRENT_HOST": INDEX_CURRENT_HOST,
                         "sequences_scores": sequences_scores,
                         "scores": l_of_scores_cpu,
+                        "sequences": output.sequences.cpu(),
                     }
                 )
-                store_data(PATH_TO_CACHED_DATA, cache)
+                if CACHE_PROBS:
+                    store_data(PATH_TO_CACHED_DATA, cache)
                 INDEX_CURRENT_HOST += 1
+
+                ###
+                # print("type(output)", type(output))
+                # print("type(output.scores)", type(output.scores))
+                # print("outout.scores", output.scores)
+                # print("output.scores[-1]", output.scores[-1])
+                # print("output.scores[-1].topk(2)", output.scores[-1].topk(2))
+                # print("output.sequences_scores", output.sequences_scores)
+                # store_data("/app/tmp_scores.bin", l_of_scores_cpu)
+                # print("output.sequences[:,-1]", output.sequences[:, -1])
+                # print("output.scores[-1].topk(2).indices[0]", output.scores[-1].topk(2).indices[0])
+                ###
+
                 return output.sequences
 
             return f
