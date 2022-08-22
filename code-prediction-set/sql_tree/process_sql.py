@@ -1,4 +1,3 @@
-################################
 # FROM https://github.com/taoyds/spider/blob/master/process_sql.py
 # Assumptions:
 #   1. sql is correct
@@ -63,17 +62,17 @@ class Schema:
         return self._idMap
 
     def _map(self, schema):
-        idMap = {"*": "__all__"}
-        id = 1
+        idMap = {"*": -1}
+        id = 0
         for key, vals in schema.items():
             for val in vals:
-                idMap[key.lower() + "." + val.lower()] = "__" + key.lower() + "." + val.lower() + "__"
-                id += 1
-
-        for key in schema:
-            idMap[key.lower()] = "__" + key.lower() + "__"
+                idMap[key.lower() + "." + val.lower()] = id
             id += 1
 
+        id = 0
+        for key in schema:
+            idMap[key.lower()] = id
+            id += 1
         return idMap
 
 
