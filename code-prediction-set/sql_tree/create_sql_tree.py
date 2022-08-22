@@ -25,10 +25,12 @@ def load_data(fname):
 def get_spider_sexpr(db_id, query, trace):
     path_to_sql = f"{PICARD_DIR}/database/{db_id}/{db_id}.sqlite"
     schema = process_sql.Schema(process_sql.get_schema(path_to_sql))
-    spider_output = process_sql.get_sql(schema, query)
-    sexpr_input = {"db_id": db_id, "sql": spider_output}
+    spider_output = "ERROR"
     sexpr = "ERROR"
     try:
+
+        spider_output = process_sql.get_sql(schema, query)
+        sexpr_input = {"db_id": db_id, "sql": spider_output}
         sexpr = spider_to_sexpr.foo(sexpr_input)
     except Exception:
         if trace:
