@@ -567,8 +567,8 @@ def get_sql(schema, query):
     return sql
 
 
-def get_sql_with_probs(schema, sql_tokens: List[str], probabilities: List[str]):
-    toks = custom_tokenize(sql_tokens, probabilities)
+def get_sql_from_tokens(schema, sql_tokens: List[str]):
+    toks = custom_tokenize(sql_tokens)
     tables_with_alias = get_tables_with_alias(schema.schema, toks)
     _, sql = parse_sql(toks, 0, tables_with_alias, schema)
 
