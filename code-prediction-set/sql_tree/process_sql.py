@@ -1,4 +1,4 @@
-# FROM https://github.com/taoyds/spider/blob/master/process_sql.py
+# Adapted from https://github.com/taoyds/spider/blob/master/process_sql.py
 # Assumptions:
 #   1. sql is correct
 #   2. only table name has alias
@@ -27,6 +27,12 @@
 import json
 import sqlite3
 from nltk import word_tokenize
+import os
+import sys
+from typing import List
+
+sys.path.append(os.path.dirname(os.path.realpath(__file__)))
+from tokenize_spider import tokenize as custom_tokenize
 
 CLAUSE_KEYWORDS = ("select", "from", "where", "group", "order", "limit", "intersect", "union", "except")
 JOIN_KEYWORDS = ("join", "on", "as")
@@ -555,6 +561,14 @@ def load_data(fpath):
 
 def get_sql(schema, query):
     toks = tokenize(query)
+    tables_with_alias = get_tables_with_alias(schema.schema, toks)
+    _, sql = parse_sql(toks, 0, tables_with_alias, schema)
+
+    return sql
+
+
+def get_sql_with_probs(schema, sql_tokens: List[str], probabilities: List[str]):
+    toks = custom_tokenize(sql_tokens, probabilities)
     tables_with_alias = get_tables_with_alias(schema.schema, toks)
     _, sql = parse_sql(toks, 0, tables_with_alias, schema)
 

@@ -41,25 +41,27 @@ def get_spider_sexpr(db_id, query, trace):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("-b", "--beam", type=int)
-    parser.add_argument("-i", dest="includeCorrect", type=int)
-    parser.add_argument("-include_spider_tree", dest="include_spider_tree", type=int)
-    parser.add_argument("-traceback", dest="traceback", type=int)
-    parser.add_argument("-include_sexpr_err", dest="include_sexpr_err", type=int, default=0)
-    parser.add_argument("-include_results", dest="include_results", type=int, default=0)
-    parser.set_defaults(includeCorrect=1)
-    parser.set_defaults(include_spider_tree=0)
-    parser.set_defaults(traceback=0)
+    parser.add_argument("--b", dest="beam", type=int, default=16)
+    parser.add_argument("--i", dest="includeCorrect", type=int, default=1)
+    parser.add_argument("--include_spider_tree", dest="include_spider_tree", type=int, default=0)
+    parser.add_argument("--traceback", dest="traceback", type=int, default=0)
+    parser.add_argument("--include_sexpr_err", dest="include_sexpr_err", type=int, default=0)
+    parser.add_argument("--include_results", dest="include_results", type=int, default=0)
+    parser.add_argument("--max_count", dest="max_count", type=int, default=100_000)
     args = parser.parse_args()
     assert args.beam in [16]
     num_pred = 8 if args.beam == 16 else -1
     data = load_data(
         f"{PICARD_DIR}/code-prediction-set/results_v2/t53b_with_prob_result_num_beam_{args.beam}__num_pred_{num_pred}__store_preds_{True}.pkl"
     )
+    cnt = 0
     cnt_sexpr_failure = 0
     cnt_sexpr = 0
+
     for sample in data["target_in_set"]:
-        if (sample["solution_in_set"] == -1) or (not args.includeCorrect):
+        if cnt >= args.max_count:
+            break
+        if (sample["solution_in_set"] == -1) or (args.includeCorrect):
             print_str = ""
             print_str += f'DB\t{sample["db_id"]}\n'
             print_str += f'Question\t{sample["question"]}\n'
@@ -67,6 +69,7 @@ if __name__ == "__main__":
             spider, sexpr = get_spider_sexpr(sample["db_id"], sample["solution_query"], bool(args.traceback))
             cnt_sexpr += 1
             if sexpr == "ERROR":
+                print(print_str)
                 cnt_sexpr_failure += 1
                 if not args.include_sexpr_err:
                     continue
@@ -98,6 +101,7 @@ if __name__ == "__main__":
                     print_str += "\n"
                 print_str += "\n"
             print(print_str + "\n\n")
+            cnt += 1
 
     print("SEXPR FAILURE CASES: ", cnt_sexpr_failure)
     print("TOTAL_SEXPR_CREATED", cnt_sexpr)
