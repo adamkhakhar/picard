@@ -2,7 +2,7 @@ from z3 import *
 import numpy as np
 
 
-def add_tree_constraints(s, tree):
+def add_tree_constraints(o, tree):
     ordered_probabilities = []
     indicator_variables = []
     map_node_to_indicator = {}
@@ -27,7 +27,7 @@ def add_tree_constraints(s, tree):
         curr_indicator_variable = map_node_to_indicator[curr_node]
         for c in curr_node.children:
             child_indicator_variable = map_node_to_indicator[c]
-            s.add(Implies(child_indicator_variable, curr_indicator_variable))
+            o.add(Implies(child_indicator_variable, curr_indicator_variable))
             q.append(c)
 
     assert len(ordered_probabilities) == len(indicator_variables)
@@ -38,14 +38,14 @@ def solve_optimization(tree, max_cost_threshold):
     """
     solves optimization problem defined in https://www.overleaf.com/project/6304f33ff542595b403d373e
     """
-    s = Solver()
+    o = Optimize()
     # add node removal constraints
     probabilities, indicator_variables = add_tree_constraints(s, tree)
     # add threshold constraint
-    s.add(
+    o.add(
         sum([-1 * probabilities[i] * indicator_variables[i] for i in range(len(indicator_variables))])
         <= max_cost_threshold
     )
     # add optimization
-    o = Optimize()
     o.maximize(sum([-1 * probabilities[i] * indicator_variables[i] for i in range(len(indicator_variables))]))
+    return o.check(), o.model()
