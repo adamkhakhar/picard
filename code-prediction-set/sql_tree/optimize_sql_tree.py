@@ -42,13 +42,10 @@ def solve_optimization(tree, max_cost_threshold):
     # add node removal constraints
     probabilities, indicator_variables = add_tree_constraints(s, tree)
     # add threshold constraint
-    s.add(sum([-1 * variables[i] * indicator_variables[i] for i in range(len(variables))]) <= max_cost_threshold)
+    s.add(
+        sum([-1 * probabilities[i] * indicator_variables[i] for i in range(len(indicator_variables))])
+        <= max_cost_threshold
+    )
     # add optimization
     o = Optimize()
-    o.maximize(sum([-1 * variables[i] * indicator_variables[i] for i in range(len(variables))]))
-
-
-if __name__ == "__main__":
-    x = Int("x")
-    y = Int("y")
-    solve(x > 2, y < 10, x + 2 * y == 7)
+    o.maximize(sum([-1 * probabilities[i] * indicator_variables[i] for i in range(len(indicator_variables))]))
