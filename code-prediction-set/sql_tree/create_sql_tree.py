@@ -13,6 +13,7 @@ sys.path.append(PICARD_DIR)
 sys.path.append(f"{PICARD_DIR}/code-prediction-set/sql_tree")
 
 import process_sql
+import process_sql_combined_token_prob
 
 spider_to_sexpr = importlib.import_module("synth-sql.python.main")
 
@@ -23,7 +24,12 @@ def load_data(fname):
     return data
 
 
-def get_spider_sexpr(db_id, input, trace, custom_tokenize=True, probs=None):
+def store_data(fname, data):
+    with open(fname, "wb") as f:
+        pickle.dump(data, f)
+
+
+def get_spider_sexpr(db_id, input, trace, custom_tokenize=True, toks=None, probs=None):
     path_to_sql = f"{PICARD_DIR}/database/{db_id}/{db_id}.sqlite"
     schema = process_sql.Schema(process_sql.get_schema(path_to_sql))
     spider_output = "ERROR"
@@ -31,7 +37,7 @@ def get_spider_sexpr(db_id, input, trace, custom_tokenize=True, probs=None):
     try:
         if custom_tokenize:
             # spider_output = process_sql.get_sql_with_probs(schema, query)
-            spider_output = process_sql.get_sql_from_tokens(schema, input, probs)
+            spider_output = process_sql.get_sql_from_tokens(schema, input, toks, probs)
         else:
             spider_output = process_sql.get_sql(schema, input)
         sexpr_input = {"db_id": db_id, "sql": spider_output}
@@ -54,6 +60,7 @@ if __name__ == "__main__":
     parser.add_argument("--max_count", dest="max_count", type=int, default=100_000)
     parser.add_argument("--fst_pred_only", dest="fst_pred_only", type=int, default=1)
     parser.add_argument("--custom_tokenize", dest="custom_tokenize", type=int, default=1)
+    parser.add_argument("--save_res", dest="save_res", type=int, default=1)
     args = parser.parse_args()
     assert args.beam in [16]
     num_pred = 8 if args.beam == 16 else -1
@@ -67,10 +74,18 @@ if __name__ == "__main__":
 
     token_prob_data = load_data(f"{PICARD_DIR}/code-prediction-set/results_v2/prob_with_token.pkl")
 
-    for sample in data["target_in_set"][:]:
+    results = []
+
+    for sample in data["target_in_set"]:
         if cnt >= args.max_count:
             break
         if (sample["solution_in_set"] == -1) or (args.includeCorrect):
+            curr_sample = {
+                "db_id": sample["db_id"],
+                "q": sample["question"],
+                "target": sample["solution_query"],
+                "preds": [],
+            }
             print_str = ""
             print_str += f'DB\t{sample["db_id"]}\n'
             print_str += f'Question\t{sample["question"]}\n'
@@ -101,23 +116,20 @@ if __name__ == "__main__":
                 print_str += f'\t{res["query"]}\n'
                 # ipdb.set_trace()
                 spider, sexpr = "ERROR", "ERROR"
-                if args.custom_tokenize:
-                    if sample["startindx"] in token_prob_data:
-                        fst_pred_token_probs = token_prob_data[sample["startindx"] + sample["INDEX_CURRENT_HOST"]]
-                        lst_tokens = [tok["token_decoded"] for tok in fst_pred_token_probs["token_probs"]]
-                        lst_probs = [tok["p"] for tok in fst_pred_token_probs["token_probs"]]
-                        spider, sexpr = get_spider_sexpr(
-                            sample["db_id"],
-                            lst_tokens,
-                            bool(args.traceback),
-                            custom_tokenize=bool(args.custom_tokenize),
-                            probs=lst_probs,
-                        )
-                        print_str += str(lst_tokens) + "\n"
-                    else:
-                        print_str += "index oftoken_prob_data != sample['startindx']"
-                        break
 
+                if sample["startindx"] in token_prob_data:
+                    fst_pred_token_probs = token_prob_data[sample["startindx"] + sample["INDEX_CURRENT_HOST"]]
+                    lst_tokens = [tok["token_decoded"] for tok in fst_pred_token_probs["token_probs"]]
+                    lst_probs = [tok["p"] for tok in fst_pred_token_probs["token_probs"]]
+                if args.custom_tokenize and sample["startindx"] in token_prob_data:
+                    spider, sexpr = get_spider_sexpr(
+                        sample["db_id"],
+                        res["query"],
+                        bool(args.traceback),
+                        toks=lst_tokens,
+                        custom_tokenize=bool(args.custom_tokenize),
+                        probs=lst_probs,
+                    )
                 else:
                     spider, sexpr = get_spider_sexpr(
                         sample["db_id"], res["query"], bool(args.traceback), custom_tokenize=bool(args.custom_tokenize)
@@ -134,11 +146,23 @@ if __name__ == "__main__":
                         print_str += "\t\t\t" + output + "\n"
                     print_str += "\n"
                 print_str += "\n"
+                curr_sample["preds"].append(
+                    {
+                        "prediction": res["query"],
+                        "sexpr": sexpr,
+                        "spider": spider,
+                        "lst_tokens": lst_tokens,
+                        "lst_probs": lst_probs,
+                        "sexpr_tokenize": process_sql.tokenize(res["query"]),
+                    }
+                )
                 # only include first prediction (prediction with higest likelihood)
                 if args.fst_pred_only:
                     break
+            results.append(curr_sample)
             print(print_str + "\n\n")
             cnt += 1
-
+    if args.save_res:
+        store_data(f"{PICARD_DIR}/code-prediction-set/sql_tree/create_sql_tree_result.bin", results)
     print("SEXPR FAILURE CASES: ", cnt_sexpr_failure)
     print("TOTAL_SEXPR_CREATED", cnt_sexpr)

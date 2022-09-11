@@ -1,6 +1,15 @@
 from typing import List
 
 
+class CombinedTokenProb:
+    def __init__(self, token, prob):
+        self.token = token
+        self.prob = prob
+
+    def __str__(self):
+        return self.token + "<p=" + str(self.prob) + ">"
+
+
 def tokenize(sql_tokens: List[str], probs: List[float], prob_combine_fun=lambda l: sum(l) / len(l)) -> List[str]:
     # print("sql_tokens", sql_tokens)
     # remove all tokens which are before select token
@@ -23,11 +32,39 @@ def tokenize(sql_tokens: List[str], probs: List[float], prob_combine_fun=lambda 
     assert len(clean_toks) == len(clean_probs)
     # print("clean_toks", clean_toks)
 
+    curr_tokenized_index = 0
     combined_toks = []
     combined_probs = []
-    curr_tok = ""
     curr_prob = []
+    curr_tok = ""
     in_partial_tok = False
+
+    # for i in range(len(clean_toks)):
+    #     print("clean_toks[i]", clean_toks[i])
+    #     print("tokenized_query[curr_tokenized_index]", tokenized_query[curr_tokenized_index])
+    #     print("tokenized_query[curr_tokenized_index].startswith(clean_toks[i])", tokenized_query[curr_tokenized_index].startswith(clean_toks[i]))
+    #     print("in_partial_tok", in_partial_tok)
+    #     # completing token:
+    #     if clean_toks[i] == tokenized_query[curr_tokenized_index]:
+    #         if in_partial_tok:
+    #             curr_prob.append(clean_probs[i])
+    #             combined_probs.append(prob_combine_fun(curr_prob))
+    #             combined_toks.append(curr_tok + clean_toks[i])
+    #             curr_prob = []
+    #             curr_tok = ""
+    #             in_partial_tok = False
+    #         else:
+    #             combined_toks.append(clean_toks[i])
+    #             combined_probs.append(clean_probs[i])
+    #         curr_tokenized_index += 1
+    #     else:
+    #         assert tokenized_query[curr_tokenized_index].startswith(clean_toks[i]) or tokenized_query[curr_tokenized_index].startswith(clean_toks[i])
+    #         curr_prob.append(clean_probs[i])
+    #         curr_tok += clean_toks[i]
+    #         tokenized_query[curr_tokenized_index] = tokenized_query[curr_tokenized_index][len(clean_toks[i]):]
+    #     print("combined_toks", combined_toks)
+    #     print("\n")
+
     # combine tokens that are not sql syntax
     sql_syntax = set(
         [
@@ -94,7 +131,7 @@ def tokenize(sql_tokens: List[str], probs: List[float], prob_combine_fun=lambda 
                 combined_probs.append(prob_combine_fun(curr_prob))
                 curr_tok = ""
                 curr_prob = []
-            combined_probs.append(clean_probs[i])
+            combined_probs.append(prob_combine_fun([clean_probs[i]]))
             combined_toks.append(clean_toks[i])
             in_partial_tok = False
         else:
@@ -109,5 +146,10 @@ def tokenize(sql_tokens: List[str], probs: List[float], prob_combine_fun=lambda 
 
     # print("combined_toks", combined_toks)
     # print("combined_probs", combined_probs)
+    combined_tok_prob = [CombinedTokenProb(combined_toks[i], combined_probs[i]) for i in range(len(combined_toks))]
+    # print("tokenized_query", tokenized_query)
+    # print("combined_toks", combined_toks)
 
-    return combined_toks
+    # return combined_tok_prob
+    assert len(combined_toks) == len(combined_probs)
+    return combined_toks, combined_probs

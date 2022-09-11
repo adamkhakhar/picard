@@ -582,6 +582,8 @@
 #         idx += 1
 #     return idx
 
+
+# Version working with out combined token and prob in same return val
 import json
 import sqlite3
 from nltk import word_tokenize
@@ -1124,8 +1126,9 @@ def get_sql(schema, query):
     return sql
 
 
-def get_sql_from_tokens(schema, sql_tokens: List[str], probs: List[float]):
-    toks = custom_tokenize(sql_tokens, probs)
+def get_sql_from_tokens(schema, query, sql_tokens: List[str], probs: List[float]):
+    correct_toks = tokenize(query.lower())
+    toks, _ = custom_tokenize(sql_tokens, probs)
     tables_with_alias = get_tables_with_alias(schema.schema, toks)
     _, sql = parse_sql(toks, 0, tables_with_alias, schema)
 
@@ -1137,3 +1140,5 @@ def skip_semicolon(toks, start_idx):
     while idx < len(toks) and toks[idx] == ";":
         idx += 1
     return idx
+
+
