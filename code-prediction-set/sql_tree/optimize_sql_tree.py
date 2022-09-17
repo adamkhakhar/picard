@@ -14,7 +14,7 @@ def add_tree_constraints(o, tree):
     q.append(tree)
     while len(q) > 0:
         curr_node = q.popleft()
-        curr_indicator = Bool(curr_node.name + ":" + str(node_number))
+        curr_indicator = Bool(curr_node.name + "::" + str(node_number))
         indicator_variables.append(curr_indicator)
         map_node_to_indicator[curr_node] = curr_indicator
         # for nodes that do not have prob, make them at no cost
@@ -59,3 +59,16 @@ def solve_optimization(tree, max_cost_threshold):
     # add optimization
     o.maximize(sum([-1 * probabilities[i] * indicator_variables[i] for i in range(len(indicator_variables))]))
     return o.check(), o.model()
+
+def create_tree_from_optimization_result(tree, max_cost_threshold):
+    check, model = solve_optimization(tree, max_cost_threshold)
+    if str(check) == "unsat":
+        return None
+    else:
+        map_node_name_to_include = {}
+        tuples = [t.split(" = ") for t in str(model)[1:-1].split(",\n")]
+        for tup in tuples:
+            map_node_name_to_include[tup[0]] = tup[1]
+        print(map_node_name_to_include)
+        return None
+

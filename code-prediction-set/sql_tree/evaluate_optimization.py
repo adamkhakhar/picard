@@ -7,7 +7,7 @@ import numpy as np
 PICARD_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 sys.path.append(f"{PICARD_DIR}/code-prediction-set/sql_tree")
 
-from optimize_sql_tree import solve_optimization
+from optimize_sql_tree import create_tree_from_optimization_result
 from generate_probability_tree_from_sexpr import ExprWithProb
 
 
@@ -28,7 +28,6 @@ if __name__ == "__main__":
         pred_tree = sample["pred_tree_with_prob"]
         target_tree = sample["target_tree"]
         max_cost_threshold = -np.log(0.8)
-        check, model = solve_optimization(pred_tree, max_cost_threshold)
-        print("pred_tree", str(pred_tree))
-        print(check, model)
+        pruned_pred_tree = create_tree_from_optimization_result(pred_tree, max_cost_threshold)
+        print("pruned_pred_tree", str(pruned_pred_tree))
         ipdb.set_trace()
