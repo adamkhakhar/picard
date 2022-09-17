@@ -5,6 +5,7 @@ import os
 import sys
 import ipdb
 import numpy as np
+import ipdb
 
 PICARD_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 sys.path.append(f"{PICARD_DIR}/code-prediction-set/sql_tree")
@@ -90,13 +91,23 @@ if __name__ == "__main__":
     data = load_data(f"{PICARD_DIR}/code-prediction-set/sql_tree/create_sql_tree_result.bin")
 
     trees = []
-    for sample in data[-1:]:
-        expr = lisp.parse(str(sample["preds"][0]["sexpr"]))
+    for sample in data:
+        # ipdb.set_trace()
+        expr = lisp.parse(str(sample["preds"][0]["pred_sexpr"]))
         probs = sample["preds"][0]["lst_probs"]
         tokens = sample["preds"][0]["lst_tokens"]
         # print("tokens", tokens)
         # print("probs", probs)
         tree_with_probs = prob_tree_runner(expr, probs, tokens)
+        print("PREDICTION:")
+        print(str(sample["preds"][0]["prediction"]))
+        print("TREE WITH PROB:")
         print(str(tree_with_probs))
+
         # ipdb.set_trace()
-        trees.append(tree_with_probs)
+        target_tree = lisp.parse(str(sample["preds"][0]["target_sexpr"]))
+        print("target_tree\n", str(target_tree))
+        print("\n")
+        trees.append({"pred_tree_with_prob": tree_with_probs, "target_tree": target_tree})
+
+    store_data(os.path.dirname(os.path.realpath(__file__)) + "tree_with_prob_and_target.bin", trees)

@@ -111,6 +111,8 @@ if __name__ == "__main__":
                 cnt_sexpr_failure += 1
             cnt_sexpr += 1
 
+            target_sexpr = sexpr
+
             for res in sample["picard_result"]:
                 print_str += "\tPrediction:\n"
                 print_str += f'\t{res["query"]}\n'
@@ -149,8 +151,9 @@ if __name__ == "__main__":
                 curr_sample["preds"].append(
                     {
                         "prediction": res["query"],
-                        "sexpr": sexpr,
-                        "spider": spider,
+                        "pred_sexpr": sexpr,
+                        "pred_spider": spider,
+                        "target_sexpr": target_sexpr,
                         "lst_tokens": lst_tokens,
                         "lst_probs": lst_probs,
                         "sexpr_tokenize": process_sql.tokenize(res["query"]),
