@@ -15,9 +15,9 @@ from tokenize_spider import tokenize as custom_tokenize
 
 
 class ExprWithProb:
-    def __init__(self, name, prob, children=[]):
+    def __init__(self, name, prob):
         self.name = name
-        self.children = children
+        self.children = []
         self.prob = prob
 
     def __str__(self):

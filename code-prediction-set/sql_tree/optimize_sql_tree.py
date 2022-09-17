@@ -1,7 +1,11 @@
 from collections import deque
 from z3 import *
-import numpy as np
+import ipdb
 
+PICARD_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
+sys.path.append(f"{PICARD_DIR}/code-prediction-set/sql_tree")
+
+from generate_probability_tree_from_sexpr import ExprWithProb
 
 def add_tree_constraints(o, tree):
     ordered_probabilities = []
@@ -48,8 +52,8 @@ def solve_optimization(tree, max_cost_threshold):
     # add node removal constraints
     probabilities, indicator_variables = add_tree_constraints(o, tree)
 
-    print([(indicator_variables[i], ":", probabilities[i]) for i in range(len(probabilities))])
-    print("sum probs", sum(probabilities), "max possible cost", -1 * sum(probabilities))
+    # print([(indicator_variables[i], ":", probabilities[i]) for i in range(len(probabilities))])
+    # print("sum probs", sum(probabilities), "max possible cost", -1 * sum(probabilities))
 
     # add threshold constraint
     o.add(
@@ -66,9 +70,34 @@ def create_tree_from_optimization_result(tree, max_cost_threshold):
         return None
     else:
         map_node_name_to_include = {}
-        tuples = [t.split(" = ") for t in str(model)[1:-1].split(",\n")]
+        print(str(model))
+        tuples = [t.split(" = ") for t in str(model)[1:-1].split(",\n ")]
         for tup in tuples:
-            map_node_name_to_include[tup[0]] = tup[1]
+            map_node_name_to_include[tup[0]] = tup[1] == "True"
+
         print(map_node_name_to_include)
-        return None
+        
+        root = ExprWithProb("root", -1)
+        node_number = 0
+        q = deque()
+        q.append({
+            "parent": root,
+            "child": tree
+        })
+        while len(q) > 0:
+            curr = q.popleft()
+            curr_child = curr["child"]
+            curr_parent = curr["parent"]
+            curr_node = ExprWithProb(curr_child.name, curr_child.prob)
+            # if adding to tree, create new node and add to children of parent
+            if map_node_name_to_include[curr_child.name+"::"+str(node_number)]:
+                curr_parent.children.append(curr_node)
+            # need to explore all children even if not including in tree to maintain node number count
+            for c in curr_child.children:
+                q.append({
+                    "parent": curr_node,
+                    "child": c
+                })
+            node_number += 1
+        return root.children[0] if len(root.children) > 0 else None, check, model
 

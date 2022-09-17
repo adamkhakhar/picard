@@ -27,7 +27,9 @@ if __name__ == "__main__":
     for sample in data:
         pred_tree = sample["pred_tree_with_prob"]
         target_tree = sample["target_tree"]
-        max_cost_threshold = -np.log(0.8)
-        pruned_pred_tree = create_tree_from_optimization_result(pred_tree, max_cost_threshold)
+        max_cost_threshold = -np.log(.8)
+        pruned_pred_tree, check, model = create_tree_from_optimization_result(pred_tree, max_cost_threshold)
+        print("pred tree", str(pred_tree))
         print("pruned_pred_tree", str(pruned_pred_tree))
-        ipdb.set_trace()
+        print("target tree", str(target_tree))
+        print("\n")
