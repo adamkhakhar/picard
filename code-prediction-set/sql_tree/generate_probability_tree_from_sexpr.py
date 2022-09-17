@@ -5,7 +5,6 @@ import os
 import sys
 import ipdb
 import numpy as np
-import ipdb
 
 PICARD_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 sys.path.append(f"{PICARD_DIR}/code-prediction-set/sql_tree")
@@ -67,8 +66,6 @@ def get_prob_from_name(name, token_prob_map):
             if len(tok) > n_char:
                 n_char = len(tok)
                 most_likely_prob = token_prob_map[tok]
-                tok_used = tok
-    # print("get_prob_from_name name", name, "->", tok_used, most_likely_prob)
     return most_likely_prob
 
 
