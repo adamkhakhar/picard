@@ -70,12 +70,12 @@ def create_tree_from_optimization_result(tree, max_cost_threshold):
         return None
     else:
         map_node_name_to_include = {}
-        print(str(model))
+        # print(str(model))
         tuples = [t.split(" = ") for t in str(model)[1:-1].split(",\n ")]
         for tup in tuples:
             map_node_name_to_include[tup[0]] = tup[1] == "True"
 
-        print(map_node_name_to_include)
+        # print(map_node_name_to_include)
         
         root = ExprWithProb("root", -1)
         node_number = 0

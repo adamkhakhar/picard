@@ -29,7 +29,7 @@ def store_data(fname, data):
         pickle.dump(data, f)
 
 
-def get_spider_sexpr(db_id, input, trace, custom_tokenize=True, toks=None, probs=None):
+def get_spider_sexpr(db_id, input, trace, custom_tokenize=True, toks=None, probs=None, target=False):
     path_to_sql = f"{PICARD_DIR}/database/{db_id}/{db_id}.sqlite"
     schema = process_sql.Schema(process_sql.get_schema(path_to_sql))
     spider_output = "ERROR"
@@ -37,9 +37,13 @@ def get_spider_sexpr(db_id, input, trace, custom_tokenize=True, toks=None, probs
     try:
         if custom_tokenize:
             # spider_output = process_sql.get_sql_with_probs(schema, query)
-            spider_output = process_sql.get_sql_from_tokens(schema, input, toks, probs)
+            if not target:
+                spider_output = process_sql.get_sql_from_tokens(schema, input, toks, probs)
+            else:
+                toks = input.lower().split(" ")
+                spider_output = process_sql.get_sql_from_tokens(schema, input, toks, [-1]*len(toks))
         else:
-            spider_output = process_sql.get_sql(schema, input)
+            spider_output = process_sql.get_sql(schema, input.lower())
         sexpr_input = {"db_id": db_id, "sql": spider_output}
         sexpr = spider_to_sexpr.foo(sexpr_input)
     except Exception:
@@ -91,7 +95,7 @@ if __name__ == "__main__":
             print_str += f'Question\t{sample["question"]}\n'
             print_str += f'Target\t{sample["solution_query"]}\n'
             spider, sexpr = get_spider_sexpr(
-                sample["db_id"], sample["solution_query"], bool(args.traceback), custom_tokenize=False
+                sample["db_id"], sample["solution_query"], bool(args.traceback), custom_tokenize=bool(args.custom_tokenize), target=True
             )
             cnt_sexpr += 1
             if sexpr == "ERROR":

@@ -15,9 +15,9 @@ from tokenize_spider import tokenize as custom_tokenize
 
 
 class ExprWithProb:
-    def __init__(self, name, prob):
+    def __init__(self, name, prob, children=None):
         self.name = name
-        self.children = []
+        self.children = [] if children is None else children
         self.prob = prob
 
     def __str__(self):
@@ -86,7 +86,7 @@ def prob_tree_runner(expr, probs, tokens):
 # Generates tree with probabilities in class ExprWithProb
 if __name__ == "__main__":
     data = load_data(f"{PICARD_DIR}/code-prediction-set/sql_tree/create_sql_tree_result.bin")
-
+    print(len(data))
     trees = []
     for sample in data:
         # ipdb.set_trace()
