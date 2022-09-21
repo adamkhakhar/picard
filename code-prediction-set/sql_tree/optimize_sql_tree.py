@@ -22,7 +22,7 @@ def add_tree_constraints(o, tree):
         indicator_variables.append(curr_indicator)
         map_node_to_indicator[curr_node] = curr_indicator
         # for nodes that do not have prob, make them at no cost
-        ordered_probabilities.append(curr_node.prob if curr_node.prob != -1 else 1e-7)
+        ordered_probabilities.append(curr_node.prob if curr_node.prob != -1 else -1e-7)
         for c in curr_node.children:
             q.append(c)
         node_number += 1

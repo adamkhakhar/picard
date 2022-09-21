@@ -82,6 +82,14 @@ def prob_tree_runner(expr, probs, tokens):
     # print("map_combined_token_to_combined_prob", map_combined_token_to_combined_prob)
     return create_prob_tree(expr, map_combined_token_to_combined_prob)
 
+def pretty_print_tree(t, pref="", include_prob=False):
+    if include_prob:
+        print(pref + t.name + "|p="+ str(t.prob))
+    else:
+        print(pref + t.name)
+    for c in t.children:
+        pretty_print_tree(c, pref+"\t", include_prob=include_prob)
+
 
 # Generates tree with probabilities in class ExprWithProb
 if __name__ == "__main__":
@@ -99,11 +107,12 @@ if __name__ == "__main__":
         print("PREDICTION:")
         print(str(sample["preds"][0]["prediction"]))
         print("TREE WITH PROB:")
-        print(str(tree_with_probs))
+        pretty_print_tree(tree_with_probs, include_prob=True)
 
         # ipdb.set_trace()
         target_tree = lisp.parse(str(sample["preds"][0]["target_sexpr"]))
-        print("target_tree\n", str(target_tree))
+        print("target_tree:")
+        pretty_print_tree(target_tree)
         print("\n")
         trees.append({"pred_tree_with_prob": tree_with_probs, "target_tree": target_tree})
 

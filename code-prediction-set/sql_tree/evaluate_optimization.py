@@ -67,27 +67,30 @@ def evaluate_if_target_in_pruned_pred(pruned_pred_tree, target_tree):
         return False, f"curr node is not the same: {pruned_pred_tree.name} != {target_tree.name}"
 
 
-def pretty_print_tree(t, pref=""):
-    print(pref + t.name)
+def pretty_print_tree(t, pref="", include_prob=False):
+    if include_prob:
+        print(pref + t.name + "|p="+ str(t.prob))
+    else:
+        print(pref + t.name)
     for c in t.children:
-        pretty_print_tree(c, pref+"\t")
+        pretty_print_tree(c, pref+"\t", include_prob=include_prob)
 
 if __name__ == "__main__":
     data = load_data(os.path.dirname(os.path.realpath(__file__)) + "tree_with_prob_and_target.bin")
-    print(len(data))
     evaluation = []
     i = 0
     for sample in data:
-        print(i)
+        # print(i)
         i += 1
         pred_tree = sample["pred_tree_with_prob"]
         if pred_tree.name == "ERROR":
             continue
         target_tree = sample["target_tree"]
         target_tree = make_all_lowercase_and_remove_spaces(target_tree)
-
-        # for p in np.arange(.05, 1, .05):
-        for p in [1]:
+        # print(pred_tree)
+        for p in np.arange(.99, 1.01, .001):
+        # for p in [.5]:
+            # print("p:", p)
             max_cost_threshold = -np.log(p)
             pruned_pred_tree = None
             try:
@@ -97,14 +100,14 @@ if __name__ == "__main__":
             if pruned_pred_tree is not None:
                 pruned_pred_tree = make_all_lowercase_and_remove_spaces(pruned_pred_tree)
                 target_in_pred = evaluate_if_target_in_pruned_pred(pruned_pred_tree, target_tree)
-                if target_in_pred[0]:
-                    # print("pred tree:")
-                    # pretty_print_tree(pred_tree)
+                if not target_in_pred[0]:
+                    print("orig pred tree:")
+                    pretty_print_tree(pred_tree, include_prob=True)
                     print("pruned_pred_tree:")
                     pretty_print_tree(pruned_pred_tree)
                     print("target_tree:")
                     pretty_print_tree(target_tree)
-                    print(target_in_pred)
+                    print("outcome:", target_in_pred)
                     print("\n")
                 
                 evaluation.append({

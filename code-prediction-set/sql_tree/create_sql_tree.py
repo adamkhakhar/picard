@@ -40,8 +40,9 @@ def get_spider_sexpr(db_id, input, trace, custom_tokenize=True, toks=None, probs
             if not target:
                 spider_output = process_sql.get_sql_from_tokens(schema, input, toks, probs)
             else:
-                toks = input.lower().split(" ")
-                spider_output = process_sql.get_sql_from_tokens(schema, input, toks, [-1]*len(toks))
+                # toks = input.lower().split(" ")
+                # spider_output = process_sql.get_sql_from_tokens(schema, input, toks, [-1]*len(toks))
+                spider_output = process_sql.get_sql(schema, input)
         else:
             spider_output = process_sql.get_sql(schema, input.lower())
         sexpr_input = {"db_id": db_id, "sql": spider_output}
