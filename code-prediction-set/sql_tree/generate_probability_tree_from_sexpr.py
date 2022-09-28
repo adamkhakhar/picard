@@ -60,8 +60,8 @@ def get_prob_from_name(name, token_prob_map):
     n_char = -1
     tok_used = None
     for tok in token_prob_map:
-        if "." in name:
-            name = name.split(".")[-1]
+        if "." in name and (not name.isnumeric()) and name.startswith("__"):
+            name = "".join(name.split(".")[1:])
         if tok in name:
             if len(tok) > n_char:
                 n_char = len(tok)
@@ -94,7 +94,6 @@ def pretty_print_tree(t, pref="", include_prob=False):
 # Generates tree with probabilities in class ExprWithProb
 if __name__ == "__main__":
     data = load_data(f"{PICARD_DIR}/code-prediction-set/sql_tree/create_sql_tree_result.bin")
-    print(len(data))
     trees = []
     for sample in data:
         # ipdb.set_trace()
@@ -115,5 +114,5 @@ if __name__ == "__main__":
         pretty_print_tree(target_tree)
         print("\n")
         trees.append({"pred_tree_with_prob": tree_with_probs, "target_tree": target_tree})
-
+    print(len(data), len(trees))
     store_data(os.path.dirname(os.path.realpath(__file__)) + "tree_with_prob_and_target.bin", trees)

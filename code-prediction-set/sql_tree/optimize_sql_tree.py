@@ -7,6 +7,8 @@ sys.path.append(f"{PICARD_DIR}/code-prediction-set/sql_tree")
 
 from generate_probability_tree_from_sexpr import ExprWithProb
 
+DEFAULT_COST_OF_NO_PROB_NODE = -1e-14
+
 def add_tree_constraints(o, tree):
     ordered_probabilities = []
     indicator_variables = []
@@ -19,24 +21,26 @@ def add_tree_constraints(o, tree):
     while len(q) > 0:
         curr_node = q.popleft()
         curr_indicator = Bool(curr_node.name + "::" + str(node_number))
-        indicator_variables.append(curr_indicator)
-        map_node_to_indicator[curr_node] = curr_indicator
-        # for nodes that do not have prob, make them at no cost
-        ordered_probabilities.append(curr_node.prob if curr_node.prob != -1 else -1e-7)
+
+        # ignore nodes in tree without prob
+        if curr_node.prob != -1:
+            indicator_variables.append(curr_indicator)
+            map_node_to_indicator[curr_node] = curr_indicator
+            ordered_probabilities.append(curr_node.prob)
         for c in curr_node.children:
             q.append(c)
         node_number += 1
 
     # add constraints (linear time)
     q = deque()
-    q.append(tree)
+    q.append((tree, None))
     while len(q) > 0:
-        curr_node = q.popleft()
-        curr_indicator_variable = map_node_to_indicator[curr_node]
+        curr_node, parent_indicator = q.popleft()
+        curr_indicator_variable = map_node_to_indicator[curr_node] if curr_node in map_node_to_indicator else parent_indicator
         for c in curr_node.children:
-            child_indicator_variable = map_node_to_indicator[c]
+            child_indicator_variable = map_node_to_indicator[c] if c in map_node_to_indicator else curr_indicator_variable
             o.add(Implies(child_indicator_variable, curr_indicator_variable))
-            q.append(c)
+            q.append((c, curr_indicator_variable))
 
     assert len(ordered_probabilities) == len(indicator_variables)
     # make sure all float
@@ -77,6 +81,7 @@ def create_tree_from_optimization_result(tree, max_cost_threshold):
 
         # print(map_node_name_to_include)
         
+        error_of_tree = []
         root = ExprWithProb("root", -1)
         node_number = 0
         q = deque()
@@ -90,8 +95,11 @@ def create_tree_from_optimization_result(tree, max_cost_threshold):
             curr_parent = curr["parent"]
             curr_node = ExprWithProb(curr_child.name, curr_child.prob)
             # if adding to tree, create new node and add to children of parent
-            if map_node_name_to_include[curr_child.name+"::"+str(node_number)]:
+            name_of_curr = curr_child.name+"::"+str(node_number)
+            # node in map if no prob associated with token
+            if name_of_curr not in map_node_name_to_include or map_node_name_to_include[name_of_curr]:
                 curr_parent.children.append(curr_node)
+                error_of_tree.append(curr_child.prob if curr_child.prob != -1 else DEFAULT_COST_OF_NO_PROB_NODE)
             # need to explore all children even if not including in tree to maintain node number count
             for c in curr_child.children:
                 q.append({
@@ -99,5 +107,5 @@ def create_tree_from_optimization_result(tree, max_cost_threshold):
                     "child": c
                 })
             node_number += 1
-        return root.children[0] if len(root.children) > 0 else None, check, model
+        return root.children[0] if len(root.children) > 0 else None, check, model, error_of_tree
 
