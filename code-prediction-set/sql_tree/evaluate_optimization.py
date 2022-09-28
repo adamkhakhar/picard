@@ -90,7 +90,7 @@ if __name__ == "__main__":
         target_tree = make_all_lowercase_and_remove_spaces(target_tree)
         # print(pred_tree)
         # for p in np.arange(.99, 1.01, .001):
-        for p in [.01, .999]:
+        for p in [.01, .99, .999999]:
             # print("p:", p)
             max_cost_threshold = -np.log(p)
             pruned_pred_tree = None
@@ -98,7 +98,6 @@ if __name__ == "__main__":
             try:
                 pruned_pred_tree, check, model, error_of_tree = create_tree_from_optimization_result(pred_tree, max_cost_threshold)
             except Exception:
-                # traceback.print_exc()
                 pass
             if pruned_pred_tree is not None:
                 pruned_pred_tree = make_all_lowercase_and_remove_spaces(pruned_pred_tree)
@@ -106,16 +105,16 @@ if __name__ == "__main__":
             else:
                 target_in_pred = (True, "Empty pruned tree")
             print(-1 * sum(error_of_tree), "/", max_cost_threshold, target_in_pred[0])
-            # if not target_in_pred[0]:
-            #     print("i", i)
-            #     print("orig pred tree:")
-            #     pretty_print_tree(pred_tree, include_prob=True)
-            #     print("pruned_pred_tree: error", round(-1 * sum(error_of_tree), 3), "/", round(max_cost_threshold, 3))
-            #     pretty_print_tree(pruned_pred_tree)
-            #     print("target_tree:")
-            #     pretty_print_tree(target_tree)
-            #     print("outcome:", target_in_pred)
-            #     print("\n")
+            if not target_in_pred[0]:
+                print("i", i)
+                print("orig pred tree:")
+                pretty_print_tree(pred_tree, include_prob=True)
+                print("pruned_pred_tree: error", round(-1 * sum(error_of_tree), 3), "/", round(max_cost_threshold, 3))
+                pretty_print_tree(pruned_pred_tree)
+                print("target_tree:")
+                pretty_print_tree(target_tree)
+                print("outcome:", target_in_pred)
+                print("\n")
             
             evaluation.append({
                 "p": p,

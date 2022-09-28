@@ -1,5 +1,6 @@
 from collections import deque
 from z3 import *
+import numpy as np
 import ipdb
 
 PICARD_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
@@ -23,10 +24,10 @@ def add_tree_constraints(o, tree):
         curr_indicator = Bool(curr_node.name + "::" + str(node_number))
 
         # ignore nodes in tree without prob
-        if curr_node.prob != -1:
+        if curr_node.prob != -1 and not (np.isnan(curr_node.prob)):
             indicator_variables.append(curr_indicator)
             map_node_to_indicator[curr_node] = curr_indicator
-            ordered_probabilities.append(curr_node.prob)
+            ordered_probabilities.append(max(curr_node.prob, -10))
         for c in curr_node.children:
             q.append(c)
         node_number += 1

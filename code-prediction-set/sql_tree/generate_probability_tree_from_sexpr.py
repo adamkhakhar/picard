@@ -66,6 +66,7 @@ def get_prob_from_name(name, token_prob_map):
             if len(tok) > n_char:
                 n_char = len(tok)
                 most_likely_prob = token_prob_map[tok]
+                tok_used = tok
     return most_likely_prob
 
 
