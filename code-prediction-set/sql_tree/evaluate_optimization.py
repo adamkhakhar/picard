@@ -90,7 +90,7 @@ if __name__ == "__main__":
         target_tree = make_all_lowercase_and_remove_spaces(target_tree)
         # print(pred_tree)
         # for p in np.arange(.99, 1.01, .001):
-        for p in [.01, .99, .999999]:
+        for p in [.999999]:
             # print("p:", p)
             max_cost_threshold = -np.log(p)
             pruned_pred_tree = None

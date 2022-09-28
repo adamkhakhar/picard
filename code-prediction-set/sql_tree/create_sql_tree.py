@@ -66,6 +66,7 @@ if __name__ == "__main__":
     parser.add_argument("--fst_pred_only", dest="fst_pred_only", type=int, default=1)
     parser.add_argument("--custom_tokenize", dest="custom_tokenize", type=int, default=1)
     parser.add_argument("--save_res", dest="save_res", type=int, default=1)
+    parser.add_argument("--name_of_prob_file", dest="name_of_prob_file", type=str, default="prob_with_token.pkl")
     args = parser.parse_args()
     assert args.beam in [16]
     num_pred = 8 if args.beam == 16 else -1
@@ -77,8 +78,14 @@ if __name__ == "__main__":
     cnt_sexpr_failure = 0
     cnt_sexpr = 0
 
-    token_prob_data = load_data(f"{PICARD_DIR}/code-prediction-set/results_v2/prob_with_token.pkl")
-
+    token_prob_data_lst = load_data(f"{PICARD_DIR}/code-prediction-set/results_v2/{args.name_of_prob_file}")
+    token_prob_data = {}
+    if type(token_prob_data_lst) == list:
+        for samp in token_prob_data_lst:
+            token_prob_data[samp["indx"]] = samp
+    else:
+        token_prob_data = token_prob_data_lst
+    # ipdb.set_trace()
     results = []
 
     for sample in data["target_in_set"]:

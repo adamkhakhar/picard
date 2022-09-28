@@ -3,6 +3,7 @@ import pdb
 # Set up logging
 import sys
 import logging
+# import ipdb
 
 logging.basicConfig(
     format="%(asctime)s - %(levelname)s - %(name)s -   %(message)s",
@@ -99,7 +100,8 @@ def main():
     )
 
     # load data
-    data = load_data("/cache/token_probs_beam_size_16_num_pred_8.pkl")
+    data = load_data("/cache/token_probs_beam_size_16_num_pred_8_temp_scaling_10.0.pkl")
+    # ipdb.set_trace()
     print("len data", len(data))
     data_with_token = []
     for i in range(len(data)):
@@ -120,7 +122,7 @@ def main():
         }
         data_with_token.append(curr_dict)
     print(data_with_token[0])
-    store_data("/app/prob_with_token.pkl", data_with_token)
+    store_data("/app/prob_with_token_temp_scaling_10.pkl", data_with_token)
 
 
 if __name__ == "__main__":

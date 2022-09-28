@@ -2,7 +2,7 @@ import pickle
 import torch
 import os
 import argparse
-import pdb
+import ipdb
 
 DIR_NAME = os.path.dirname(os.path.realpath(__file__))
 
@@ -18,11 +18,14 @@ def load_data(fname):
     return data
 
 
-def retrieve_list_token_prob(sequence, scores):
+def retrieve_list_token_prob(sequence, scores, temp_scaling=1):
     l_token_to_prob = []
     for index in range(1, len(sequence)):
         l_token_to_prob.append(
-            {"p": torch.nn.Softmax()(scores[index - 1][0])[sequence[index]].item(), "token": sequence[index]}
+            {
+                "p": torch.nn.Softmax()(scores[index - 1][0] / temp_scaling)[sequence[index]].item(),
+                "token": sequence[index],
+            }
         )
     return l_token_to_prob
 
@@ -34,6 +37,7 @@ def main():
     parser.add_argument("--startindx", dest="startindx", type=int, default=0)
     parser.add_argument("--endindx", dest="endindx", type=int, default=195)
     parser.add_argument("--step", dest="step", type=int, default=5)
+    parser.add_argument("--temp_scaling", dest="temp_scaling", type=float, default=1)
     token_probs = []
     args = parser.parse_args()
     for indx in range(args.startindx, args.endindx, args.step):
@@ -46,17 +50,22 @@ def main():
                 token_probs.append(
                     {
                         "indx": q_index,
-                        "token_probs": retrieve_list_token_prob(cache_data[i]["sequences"][0], cache_data[i]["scores"]),
+                        "token_probs": retrieve_list_token_prob(
+                            cache_data[i]["sequences"][0], cache_data[i]["scores"], temp_scaling=args.temp_scaling
+                        ),
                     }
                 )
         except Exception:
             print(
                 "FILE NOT FOUND ",
-                f"results_v2/beam_size_{args.numbeam}/num_predictions_{args.numpred}/startindx_{indx}",
+                f"{DIR_NAME}/results_v2/beam_size_{args.numbeam}/num_predictions_{args.numpred}/startindx_{indx}",
             )
             pass
     print(token_probs)
-    store_data(f"{DIR_NAME}/results_v2/token_probs_beam_size_{args.numbeam}_num_pred_{args.numpred}.pkl", token_probs)
+    store_data(
+        f"{DIR_NAME}/results_v2/token_probs_beam_size_{args.numbeam}_num_pred_{args.numpred}_temp_scaling_{args.temp_scaling}.pkl",
+        token_probs,
+    )
 
 
 if __name__ == "__main__":
