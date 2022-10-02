@@ -19,6 +19,8 @@ class ExprWithProb:
         self.name = name
         self.children = [] if children is None else children
         self.prob = prob
+        self.colon_name = None
+        self.deleted = None
 
     def __str__(self):
         if len(self.children) == 0:
@@ -83,13 +85,14 @@ def prob_tree_runner(expr, probs, tokens):
     # print("map_combined_token_to_combined_prob", map_combined_token_to_combined_prob)
     return create_prob_tree(expr, map_combined_token_to_combined_prob)
 
+
 def pretty_print_tree(t, pref="", include_prob=False):
     if include_prob:
-        print(pref + t.name + "|p="+ str(t.prob))
+        print(pref + t.name + "|p=" + str(t.prob))
     else:
         print(pref + t.name)
     for c in t.children:
-        pretty_print_tree(c, pref+"\t", include_prob=include_prob)
+        pretty_print_tree(c, pref + "\t", include_prob=include_prob)
 
 
 # Generates tree with probabilities in class ExprWithProb
