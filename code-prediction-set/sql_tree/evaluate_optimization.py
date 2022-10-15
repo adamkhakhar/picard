@@ -14,6 +14,7 @@ sys.path.append(f"{PICARD_DIR}/code-prediction-set/sql_tree")
 from optimize_sql_tree import create_tree_from_optimization_result
 from generate_probability_tree_from_sexpr import ExprWithProb
 import optimize_sql_tree_greedy_leaf
+import optimize_sql_tree_proportion_leaf
 
 
 class Expr:
@@ -115,7 +116,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     args.save_name = args.evaluation_type if len(args.save_name) == 0 else args.save_name
-    assert args.evaluation_type in ["PAC", "GREEDY_LEAF"]
+    assert args.evaluation_type in ["PAC", "GREEDY_LEAF", "PROP"]
     data = load_data(os.path.dirname(os.path.realpath(__file__)) + "tree_with_prob_and_target.bin")
     evaluation = []
     i = 0
@@ -128,7 +129,7 @@ if __name__ == "__main__":
         target_tree = sample["target_tree"]
         target_tree = make_all_lowercase_and_remove_spaces(target_tree)
         # print(pred_tree)
-        # for p in [0.8]:
+        # for p in [0.1]:
         for p in [x / 100 for x in range(1, 100, 1)]:
             # for p in [.9]:
             # print("p:", p)
@@ -154,6 +155,16 @@ if __name__ == "__main__":
                         error_of_tree,
                         frac_included_nodes,
                     ) = optimize_sql_tree_greedy_leaf.create_tree_from_optimization_result(
+                        pred_tree, max_cost_threshold
+                    )
+                elif args.evaluation_type == "PROP":
+                    (
+                        pruned_pred_tree,
+                        entire_tree_with_deleted,
+                        map_node_name_to_include,
+                        error_of_tree,
+                        frac_included_nodes,
+                    ) = optimize_sql_tree_proportion_leaf.create_tree_from_optimization_result(
                         pred_tree, max_cost_threshold
                     )
                 else:

@@ -99,9 +99,10 @@ def plot_multiple_series(
 if __name__ == "__main__":
     computed = []
     for d_name, label in [
-        ("evaluation_result_PAC.bin", "PAC"),
-        ("evaluation_result_GREEDY_LEAF.bin", "Greedy Leaf Removal"),
-        ("evaluation_result_NO_TS_PAC.bin", "PAC w/o Temperature Scaling"),
+        ("evaluation_result_PAC.bin", "Optimize Tau With Constraint"),
+        ("evaluation_result_GREEDY_LEAF.bin", "Greedy Cost Leaf Removal"),
+        ("evaluation_result_NO_TS_PAC.bin", "Optimize Tau With Constraint w/o Temperature Scaling"),
+        ("evaluation_result_PROP.bin", "Greedy Proportion of Leaf Removal")
     ]:
         data = load_data(f"/home/akhakhar/code/picard/code-prediction-set/sql_tree/{d_name}")
         print(d_name, label, len(data), data[0])
