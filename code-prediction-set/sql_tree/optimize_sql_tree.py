@@ -2,13 +2,13 @@ from collections import deque
 from z3 import *
 import numpy as np
 import ipdb
+import sys
+import os
 
 PICARD_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 sys.path.append(f"{PICARD_DIR}/code-prediction-set/sql_tree")
 
 from generate_probability_tree_from_sexpr import ExprWithProb
-
-DEFAULT_COST_OF_NO_PROB_NODE = -1e-14
 
 
 def add_tree_constraints(o, tree):

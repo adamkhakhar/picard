@@ -20,7 +20,7 @@ class ExprWithProb:
         self.children = [] if children is None else children
         self.prob = prob
         self.colon_name = None
-        self.deleted = None
+        self.deleted = False
 
     def __str__(self):
         if len(self.children) == 0:
