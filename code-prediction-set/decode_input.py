@@ -98,9 +98,9 @@ def main():
         cache_dir=backend_args.cache_dir,
         use_fast=True,
     )
-
+    NAME_TOKEN_PROB_WITH_TEMP_SCALING = "token_probs.pkl"
     # load data
-    data = load_data("/cache/token_probs_beam_size_16_num_pred_8_temp_scaling_10.0.pkl")
+    data = load_data(f"/cache/{NAME_TOKEN_PROB_WITH_TEMP_SCALING}")
     # ipdb.set_trace()
     print("len data", len(data))
     data_with_token = []
@@ -122,7 +122,7 @@ def main():
         }
         data_with_token.append(curr_dict)
     print(data_with_token[0])
-    store_data("/app/prob_with_token_temp_scaling_10.pkl", data_with_token)
+    store_data("/app/prob_with_token.pkl", data_with_token)
 
 
 if __name__ == "__main__":

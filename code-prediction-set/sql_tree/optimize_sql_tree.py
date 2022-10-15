@@ -89,6 +89,7 @@ def create_tree_from_optimization_result(tree, max_cost_threshold):
         # print(map_node_name_to_include)
 
         included_nodes = 0
+        total_nodes = 0
         error_of_tree = []
         pruned_root = ExprWithProb("root", -1)
         entire_tree_with_deleted = ExprWithProb("root", -1)
@@ -103,10 +104,10 @@ def create_tree_from_optimization_result(tree, max_cost_threshold):
             pruned_tree_curr_node = ExprWithProb(curr_child.name, curr_child.prob)
             entire_tree_curr_node = ExprWithProb(curr_child.name, curr_child.prob)
 
+            total_nodes += 1
             name_of_curr = curr_child.name + "::" + str(node_number)
             pruned_tree_curr_node.colon_name = name_of_curr
             entire_tree_curr_node.colon_name = name_of_curr
-
             entire_tree_curr_parent.children.append(entire_tree_curr_node)
             # if adding to tree, create new node and add to children of parent
             # node in map if no prob associated with token
@@ -114,7 +115,7 @@ def create_tree_from_optimization_result(tree, max_cost_threshold):
                 pruned_tree_curr_node.deleted = False
                 entire_tree_curr_node.deleted = False
                 pruned_tree_curr_parent.children.append(pruned_tree_curr_node)
-                error_of_tree.append(curr_child.prob if curr_child.prob != -1 else DEFAULT_COST_OF_NO_PROB_NODE)
+                error_of_tree.append(curr_child.prob if curr_child.prob not in [-1, np.nan] else 0)
                 included_nodes += 1
             else:
                 pruned_tree_curr_node.deleted = True
@@ -137,5 +138,5 @@ def create_tree_from_optimization_result(tree, max_cost_threshold):
             check,
             model,
             error_of_tree,
-            included_nodes / len(map_node_name_to_include),
+            included_nodes / total_nodes,
         )

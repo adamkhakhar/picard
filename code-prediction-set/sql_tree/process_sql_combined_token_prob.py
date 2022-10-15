@@ -164,6 +164,8 @@ def parse_col(toks, start_idx, tables_with_alias, schema, default_tables=None):
 
     for alias in default_tables:
         table = tables_with_alias[alias]
+        print("tok.token", tok.token)
+
         if tok.token in schema.schema[table]:
             key = table + "." + tok.token
             # print("schema.idMap keys", [str(key) for key in schema.idMap])

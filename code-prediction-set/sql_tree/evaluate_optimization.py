@@ -6,6 +6,7 @@ import numpy as np
 from collections import deque
 from colorama import Fore, Back, Style
 import traceback
+import argparse
 
 PICARD_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 sys.path.append(f"{PICARD_DIR}/code-prediction-set/sql_tree")
@@ -107,11 +108,16 @@ def pretty_print_tree(t, pref="", include_prob=False, print_deleted=True):
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--e", dest="evaluation_type", type=str, default="PAC")
+
+    args = parser.parse_args()
+    assert args.e in ["PAC"]
     data = load_data(os.path.dirname(os.path.realpath(__file__)) + "tree_with_prob_and_target.bin")
     evaluation = []
     i = 0
     for sample in data:
-        # print(i)
+        print(i)
         i += 1
         pred_tree = sample["pred_tree_with_prob"]
         if pred_tree.name == "ERROR":
@@ -120,12 +126,14 @@ if __name__ == "__main__":
         target_tree = make_all_lowercase_and_remove_spaces(target_tree)
         # print(pred_tree)
         # for p in np.arange(.99, 1.01, .001):
-        for p in [0.5]:
+        for p in [x / 100 for x in range(1, 100, 1)]:
+            # for p in [.9]:
             # print("p:", p)
             max_cost_threshold = -np.log(p)
             pruned_pred_tree = None
             target_in_pred = (None, None)
             try:
+                # if args.
                 (
                     pruned_pred_tree,
                     entire_tree_with_deleted,
@@ -140,13 +148,14 @@ if __name__ == "__main__":
                 pass
             pruned_pred_tree = make_all_lowercase_and_remove_spaces(pruned_pred_tree)
             target_in_pred = evaluate_if_target_in_pruned_pred(pruned_pred_tree, target_tree)
-            print(-1 * sum(error_of_tree), "/", max_cost_threshold, target_in_pred[0])
+            # print(-1 * sum(error_of_tree), "/", max_cost_threshold, target_in_pred[0])
             # if not target_in_pred[0]:
             if True:
                 print("i", i)
                 # print("orig pred tree:")
                 # pretty_print_tree(pred_tree, include_prob=True)
                 print("pruned_pred_tree: error", round(-1 * sum(error_of_tree), 3), "/", round(max_cost_threshold, 3))
+                print("frac_included_nodes", round(frac_included_nodes, 3))
                 pretty_print_tree(entire_tree_with_deleted, include_prob=True, print_deleted=True)
                 print("target_tree:")
                 pretty_print_tree(target_tree)
