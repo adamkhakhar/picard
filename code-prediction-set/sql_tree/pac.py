@@ -12,7 +12,8 @@ def compute_k(n, e, d):
         s += np.exp(r)
         if s > d:
             if h == 0:
-                raise Exception()
+                # raise Exception()
+                return None
             else:
                 return h - 1
     return n

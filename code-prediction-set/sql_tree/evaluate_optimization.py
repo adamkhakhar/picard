@@ -111,8 +111,10 @@ def pretty_print_tree(t, pref="", include_prob=False, print_deleted=True):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--eval", dest="evaluation_type", type=str, default="PAC")
+    parser.add_argument("--save_name", dest="save_name", type=str, default="")
 
     args = parser.parse_args()
+    args.save_name = args.evaluation_type if len(args.save_name) == 0 else args.save_name
     assert args.evaluation_type in ["PAC", "GREEDY_LEAF"]
     data = load_data(os.path.dirname(os.path.realpath(__file__)) + "tree_with_prob_and_target.bin")
     evaluation = []
@@ -126,8 +128,8 @@ if __name__ == "__main__":
         target_tree = sample["target_tree"]
         target_tree = make_all_lowercase_and_remove_spaces(target_tree)
         # print(pred_tree)
-        for p in [0.8]:
-            # for p in [x / 100 for x in range(1, 100, 1)]:
+        # for p in [0.8]:
+        for p in [x / 100 for x in range(1, 100, 1)]:
             # for p in [.9]:
             # print("p:", p)
             max_cost_threshold = -np.log(p)
@@ -195,4 +197,4 @@ if __name__ == "__main__":
             )
 
     print(len(data), "->", len(evaluation))
-    store_data(os.path.dirname(os.path.realpath(__file__)) + "/evaluation_result.bin", evaluation)
+    store_data(os.path.dirname(os.path.realpath(__file__)) + f"/evaluation_result_{args.save_name}.bin", evaluation)
