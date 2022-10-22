@@ -26,6 +26,7 @@ def solve_optimization(tree, max_cost_threshold):
         if curr_node.prob != -1 and not (np.isnan(curr_node.prob)):
             assert curr_node.prob <= 0
             curr_tree_cost += -1 * max(curr_node.prob, -10)
+            # print("curr_tree_cost", curr_tree_cost, "curr_node.prob", curr_node.prob)
         map_node_to_parent[curr_node] = curr_node_parent
         curr_node.colon_name = curr_node.name + "::" + str(indx)
         curr_node.deleted = False
@@ -37,6 +38,7 @@ def solve_optimization(tree, max_cost_threshold):
         indx += 1
 
     hq.heapify(leaves_cost)
+
 
     # greedily rm largest cost leave until threshold is met
     while curr_tree_cost > max_cost_threshold and len(leaves_cost) > 0:
@@ -53,13 +55,15 @@ def solve_optimization(tree, max_cost_threshold):
             ]
         ):
             parent = map_node_to_parent[curr_node]
-            hq.heappush(leaves_cost, (max(parent.prob, -10), indx, parent))
+            # if np.isnan(parent.prob) or parent.prob == -1:
+            #     continue
+            hq.heappush(leaves_cost, (0 if np.isnan(parent.prob) or parent.prob == -1 else max(parent.prob, -10), indx, parent))
 
     # if not satisfiable
-    if curr_tree_cost > max_cost_threshold:
-        for key in map_node_name_to_include:
-            map_node_name_to_include[key] = False
-        curr_tree_cost = 0
+    # if curr_tree_cost > max_cost_threshold:
+    #     for key in map_node_name_to_include:
+    #         map_node_name_to_include[key] = False
+    #     curr_tree_cost = 0
     return map_node_name_to_include, curr_tree_cost
 
 

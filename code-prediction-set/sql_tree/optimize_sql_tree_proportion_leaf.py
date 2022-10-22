@@ -42,13 +42,18 @@ def solve_optimization(tree, proportion):
     while num_nodes_removed < num_nodes_to_remove and len(leaves_cost) > 0:
         curr_node_prob, indx, curr_node = hq.heappop(leaves_cost)
         map_node_name_to_include[curr_node.colon_name] = False
-        curr_tree_cost += curr_node_prob
+        assert curr_node_prob <= 0 or np.isnan(curr_node_prob)
+        if curr_node.prob != -1 and not np.isnan(curr_node_prob):
+            curr_tree_cost += curr_node_prob
         curr_node.deleted = True
         if map_node_to_parent[curr_node] is not None and all(
-            [x is not None and (x.deleted or np.isnan(x.prob)) for x in map_node_to_parent[curr_node].children]
+            [
+                x is not None and (x.deleted or np.isnan(x.prob) or x.prob == -1)
+                for x in map_node_to_parent[curr_node].children
+            ]
         ):
             parent = map_node_to_parent[curr_node]
-            hq.heappush(leaves_cost, (max(parent.prob, -10), indx, parent))
+            hq.heappush(leaves_cost, (0 if np.isnan(parent.prob) or parent.prob == -1 else max(parent.prob, -10), indx, parent))
         num_nodes_removed += 1
 
     return map_node_name_to_include, curr_tree_cost
