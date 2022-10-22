@@ -24,6 +24,7 @@ def solve_optimization(tree, max_cost_threshold):
     while len(q) > 0:
         curr_node, curr_node_parent = q.popleft()
         if curr_node.prob != -1 and not (np.isnan(curr_node.prob)):
+            assert curr_node.prob <= 0
             curr_tree_cost += -1 * max(curr_node.prob, -10)
         map_node_to_parent[curr_node] = curr_node_parent
         curr_node.colon_name = curr_node.name + "::" + str(indx)
@@ -41,10 +42,15 @@ def solve_optimization(tree, max_cost_threshold):
     while curr_tree_cost > max_cost_threshold and len(leaves_cost) > 0:
         curr_node_prob, indx, curr_node = hq.heappop(leaves_cost)
         map_node_name_to_include[curr_node.colon_name] = False
-        curr_tree_cost += curr_node_prob
+        assert curr_node_prob <= 0 or np.isnan(curr_node_prob)
+        if curr_node.prob != -1 and not np.isnan(curr_node_prob):
+            curr_tree_cost += curr_node_prob
         curr_node.deleted = True
         if map_node_to_parent[curr_node] is not None and all(
-            [x is not None and (x.deleted or np.isnan(x.prob)) for x in map_node_to_parent[curr_node].children]
+            [
+                x is not None and (x.deleted or np.isnan(x.prob) or x.prob == -1)
+                for x in map_node_to_parent[curr_node].children
+            ]
         ):
             parent = map_node_to_parent[curr_node]
             hq.heappush(leaves_cost, (max(parent.prob, -10), indx, parent))
