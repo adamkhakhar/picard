@@ -60,10 +60,10 @@ def solve_optimization(tree, max_cost_threshold):
             hq.heappush(leaves_cost, (0 if np.isnan(parent.prob) or parent.prob == -1 else max(parent.prob, -10), indx, parent))
 
     # if not satisfiable
-    # if curr_tree_cost > max_cost_threshold:
-    #     for key in map_node_name_to_include:
-    #         map_node_name_to_include[key] = False
-    #     curr_tree_cost = 0
+    if curr_tree_cost > max_cost_threshold:
+        for key in map_node_name_to_include:
+            map_node_name_to_include[key] = False
+        curr_tree_cost = 0
     return map_node_name_to_include, curr_tree_cost
 
 
@@ -125,6 +125,5 @@ def create_tree_from_optimization_result(tree, max_cost_threshold: float):
         entire_tree_with_deleted.children[0] if len(entire_tree_with_deleted.children) > 0 else None,
         map_node_name_to_include,
         pruned_tree_error,
-        sum([1 if map_node_name_to_include[key] else 0 for key in map_node_name_to_include])
-        / len(map_node_name_to_include),
+        included_nodes / total_nodes,
     )

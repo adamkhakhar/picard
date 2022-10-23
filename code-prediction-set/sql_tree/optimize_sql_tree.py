@@ -54,7 +54,7 @@ def add_tree_constraints(o, tree):
     return ordered_probabilities, indicator_variables
 
 
-def solve_optimization(tree, max_cost_threshold):
+def solve_optimization(tree, max_cost_threshold, minimize_removal=False):
     """
     solves optimization problem defined in https://www.overleaf.com/project/6304f33ff542595b403d373e
     """
@@ -71,12 +71,16 @@ def solve_optimization(tree, max_cost_threshold):
         <= max_cost_threshold
     )
     # add optimization
-    o.maximize(sum([-1 * probabilities[i] * indicator_variables[i] for i in range(len(indicator_variables))]))
+    if not minimize_removal:
+        o.maximize(sum([-1 * probabilities[i] * indicator_variables[i] for i in range(len(indicator_variables))]))
+    else:
+        o.maximize(sum([-1 * probabilities[i] * indicator_variables[i] for i in range(len(indicator_variables))]) + sum([1.01 * indicator_variables[i] for i in range(len(indicator_variables))]))
     return o.check(), o.model()
 
 
-def create_tree_from_optimization_result(tree, max_cost_threshold):
-    check, model = solve_optimization(tree, max_cost_threshold)
+def create_tree_from_optimization_result(tree, max_cost_threshold, minimize_removal=False):
+    # minimize_removal = True
+    check, model = solve_optimization(tree, max_cost_threshold, minimize_removal=minimize_removal)
     if str(check) == "unsat":
         return None
     else:
