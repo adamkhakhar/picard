@@ -216,11 +216,11 @@ if __name__ == "__main__":
 
     computed = []
     label_eval = [
+        ("Greedy Cost Leaf Removal", "GREEDY_LEAF"),
         ("Optimize Tau", "PAC"),
         ("Optimize Tau and Node Removal", "PAC_MIN_RM"),
-        ("GREEDY_LEAF", "Greedy Cost Leaf Removal"),
-        ("PAC_NO_TS", "Optimize Tau w/o Temperature Scaling"),
-        ("PROP", "Greedy Proportion of Leaf Removal"),
+        ("Optimize Tau w/o Temperature Scaling", "PAC_NO_TS"),
+        ("Greedy Proportion of Leaf Removal", "PROP"),
     ]
     for label, eval in label_eval:
         print(label, eval)
@@ -230,29 +230,56 @@ if __name__ == "__main__":
         k = [compute_k(n, e_i, d) for e_i in e]
         taus = []
         frac_rm = []
-        for k_i in k:
-            print(k_i)
+        prev_p = 1 - 1e-6
+        e_used = []
+        for i in range(len(k)):
+            k_i = k[i]
+            print("k_i", k_i, "/", k[-1], flush=True)
             if k_i == None:
                 continue
-            tau, total, frac_included = find_smallest_tau_with_less_than_k_errors(eval, k_i)
+            tau, total, frac_included = find_smallest_tau_with_less_than_k_errors(eval, k_i, max_p=prev_p)
             if tau != None:
                 assert total == n
                 taus.append(tau)
                 frac_rm.append(100 * (1 - frac_included))
-            else:
-                taus.append(None)
-                frac_rm.append(None)
+                prev_p = tau
+                e_used.append(e[i])
 
         # only keep relevant data
+        e_used = [e_used[i] for i in range(len(e_used)) if taus[i] is not None]
+        frac_rm = [frac_rm[i] for i in range(len(frac_rm)) if taus[i] is not None]
+        taus = [t for t in taus if t is not None]
+
+        # for i in range(len(taus)):
+        #     if taus[i] != None:
+        #         taus = taus[i:]
+        #         e_used = e_used[i:]
+        #         k = k[i:]
+        #         frac_rm = frac_rm[i:]
+        #         break
+        # for i in range(len(taus)):
+        #     if taus[len(taus) - 1 - i] != None:
+        #         taus = taus[:len(taus) - i]
+        #         e_used = e_used[:len(taus) - i]
+        #         k = k[:len(taus) - i]
+        #         frac_rm = frac_rm[:len(taus) - i]
+        #         break
+        print(e_used)
+        print(frac_rm)
+        print(taus)
+        assert len(taus) == len(e_used)
+        assert len(taus) == len(frac_rm)
+
+        # forward fill
         for i in range(len(taus)):
-            if taus[i] != None:
-                taus = taus[i:]
-                e = e[i:]
-                k = k[i:]
-                frac_rm = frac_rm[i:]
-                break
+            idx = len(taus) - 1 - i
+            if idx + 1 < len(taus):
+                if taus[idx] is None:
+                    taus[idx] = taus[idx + 1]
+                    frac_rm[idx] = frac_rm[idx + 1]
         computed.append({"e": e, "taus": tau, "percent_nodes_removed": frac_rm, "label": label})
 
+    store_data("computed_create_plot.pkl", computed)
     for key, y_label, title in [
         ("taus", "Tau", "Optimal Tau"),
         ("percent_nodes_removed", "Percentage of Nodes Removed (%)", "Percent Nodes Removed Over e Space"),

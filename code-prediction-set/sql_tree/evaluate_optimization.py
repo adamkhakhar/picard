@@ -125,7 +125,7 @@ def run_algorithm_on_tau(eval: str, p: float):
     data = map_eval_to_data[eval]
     total_tested = 0
     num_incorrect = 0
-    fraction_included_nodes = []
+    fraction_included_nodes_lst = []
     for i, sample in enumerate(data):
         pred_tree = sample["pred_tree_with_prob"]
         if pred_tree.name == "ERROR":
@@ -137,7 +137,7 @@ def run_algorithm_on_tau(eval: str, p: float):
         pruned_pred_tree = None
         target_in_pred = (None, None)
         try:
-            if eval in ["PAC", "PAC_MIN_RM"]:
+            if eval in ["PAC", "PAC_MIN_RM", "PAC_NO_TS"]:
                 (
                     pruned_pred_tree,
                     entire_tree_with_deleted,
@@ -172,36 +172,60 @@ def run_algorithm_on_tau(eval: str, p: float):
         except Exception:
             print("EXCEPTION--------------------------")
             traceback.print_exc()
-            exit()
+            continue
+            # exit()
             # pass
         total_tested += 1
         pruned_pred_tree = make_all_lowercase_and_remove_spaces(pruned_pred_tree)
         target_in_pred = evaluate_if_target_in_pruned_pred(pruned_pred_tree, target_tree)
         if not target_in_pred[0]:
             num_incorrect += 1
-        fraction_included_nodes.append(frac_included_nodes)
-    return num_incorrect, total_tested, np.mean(fraction_included_nodes)
+        fraction_included_nodes_lst.append(frac_included_nodes)
+    return num_incorrect, total_tested, np.mean(fraction_included_nodes_lst)
 
 
-def find_smallest_tau_with_less_than_k_errors(eval, k, precision=0.001):
-    min_p = 0 + 1e-6
-    max_p = 1 - 1e-6
-    while max_p > min_p:
-        mid_p = (max_p + min_p) / 2
-        print(max_p, min_p, mid_p)
-        num_incorrect_mid, total_tested_mid, frac_mid = run_algorithm_on_tau(eval, mid_p)
-        print("\t", num_incorrect_mid)
-        if num_incorrect_mid > k:
-            min_p = mid_p + precision
-        elif num_incorrect_mid < k:
-            max_p = mid_p - precision
-        else:
-            num_incorrect_minus, total_tested_minus, frac_minus = run_algorithm_on_tau(eval, mid_p - precision)
-            if num_incorrect_minus == k:
+map_eval_to_output = {}
+
+
+def find_smallest_tau_with_less_than_k_errors(eval, k, min_p=1e-6, max_p=1 - 1e-6, precision=0.001, max_num_tries=25):
+    assert precision > 0
+    max_p = min(max_p, 1 - 1e-6)
+    max_p = max(max_p, precision * 3)
+    min_p = max(min_p, 1e-6)
+    try:
+        global map_eval_to_output
+        if eval not in map_eval_to_output:
+            map_eval_to_output[eval] = {}
+        prev_sat = None, None, None
+        num_tries = 0
+        while max_p > min_p and num_tries < max_num_tries:
+            num_tries += 1
+            mid_p = (max_p + min_p) / 2
+            print(max_p, min_p, mid_p, flush=True)
+            num_incorrect_mid, total_tested_mid, frac_mid = None, None, None
+            if mid_p in map_eval_to_output[eval]:
+                num_incorrect_mid, total_tested_mid, frac_mid = map_eval_to_output[eval][mid_p]
+            else:
+                num_incorrect_mid, total_tested_mid, frac_mid = run_algorithm_on_tau(eval, mid_p)
+                map_eval_to_output[eval][mid_p] = (num_incorrect_mid, total_tested_mid, frac_mid)
+            print("\t", num_incorrect_mid)
+            if num_incorrect_mid > k:
+                min_p = mid_p + precision
+            elif num_incorrect_mid < k:
                 max_p = mid_p - precision
             else:
-                return mid_p, total_tested_mid, frac_mid
-    return None, None, None
+                prev_sat = num_incorrect_mid, total_tested_mid, frac_mid
+                num_incorrect_minus, total_tested_minus, frac_minus = run_algorithm_on_tau(eval, mid_p - precision)
+                if num_incorrect_minus == k and (mid_p - precision - min_p > precision):
+                    max_p = mid_p - precision
+                else:
+                    return mid_p, total_tested_mid, frac_mid
+        print("\t", prev_sat)
+        return prev_sat
+    except Exception:
+        traceback.print_exc()
+        print("EXCEPTION OUTER--------------------------", flush=True)
+        return None, None, None
 
 
 if __name__ == "__main__":

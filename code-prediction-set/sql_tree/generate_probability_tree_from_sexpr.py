@@ -43,6 +43,7 @@ def load_data(fname):
 
 
 def store_data(fname, data):
+    print("STORING", fname, flush=True)
     with open(fname, "wb") as f:
         pickle.dump(data, f)
 
@@ -119,4 +120,4 @@ if __name__ == "__main__":
         print("\n")
         trees.append({"pred_tree_with_prob": tree_with_probs, "target_tree": target_tree})
     print(len(data), len(trees))
-    store_data(os.path.dirname(os.path.realpath(__file__)) + "tree_with_prob_and_target.bin", trees)
+    store_data(f"{PICARD_DIR}/code-prediction-set/sql_tree//tree_with_prob_and_target.bin", trees)
