@@ -98,122 +98,6 @@ def plot_multiple_series(
 
 
 if __name__ == "__main__":
-    # computed = []
-    # for d_name, label in [
-    #     ("Optimize Tau", "PAC"),
-    #     ("Optimize Tau and Node Removal", "PAC_MIN_RM"),
-    #     ("Greedy Cost Leaf Removal"),
-    #     ("evaluation_result_NO_TS_PAC.bin", "Optimize Tau w/o Temperature Scaling"),
-    #     ("evaluation_result_PROP.bin", "Greedy Proportion of Leaf Removal")
-    # ]:
-    #     data = load_data(f"/home/akhakhar/code/picard/code-prediction-set/sql_tree/{d_name}")
-    #     print(d_name, label, len(data), data[0])
-
-    #     map_p_to_target_in_pruned_pred = {}
-    #     map_p_to_frac_rm = {}
-    #     for sample in data:
-    #         if sample["p"] not in map_p_to_target_in_pruned_pred:
-    #             map_p_to_target_in_pruned_pred[sample["p"]] = (0, 0)
-    #             map_p_to_frac_rm[sample["p"]] = []
-    #         prev_cnt_sum = map_p_to_target_in_pruned_pred[sample["p"]]
-    #         # print("sample["target_in_pruned_pred"][0]", sample["target_in_pruned_pred"][0])
-    #         map_p_to_target_in_pruned_pred[sample["p"]] = (
-    #             prev_cnt_sum[0] + int(sample["target_in_pruned_pred"][0]),
-    #             prev_cnt_sum[1] + 1,
-    #         )
-    #         map_p_to_frac_rm[sample["p"]].append(sample["frac_included_nodes"])
-    #     for key in map_p_to_target_in_pruned_pred:
-    #         val = map_p_to_target_in_pruned_pred[key]
-    #         print(
-    #             "p:",
-    #             round(key, 3),
-    #             "|error",
-    #             -np.log(key),
-    #             "|val:",
-    #             val,
-    #             "%:",
-    #             round(val[0] / val[1] * 100, 3),
-    #             " | % removed: ",
-    #             round(100 - np.mean(map_p_to_frac_rm[key]) * 100, 1),
-    #         )
-
-    #     # compute e-> tau map
-    #     e = [x / 100 for x in range(1, 50, 1)]
-    #     n = 146
-    #     d = 0.1
-    #     k = [compute_k(n, e_i, d) for e_i in e]
-
-    #     def find_tau_for_k(map_p_to_target_in_pruned_pred, k):
-    #         if k is None:
-    #             return None
-    #         taus = [tau for tau in map_p_to_target_in_pruned_pred]
-    #         taus.reverse()
-    #         prev_tau = None
-    #         for tau in taus:
-    #             val = map_p_to_target_in_pruned_pred[tau]
-    #             if val[1] - val[0] > k:
-    #                 break
-    #             prev_tau = tau
-    #         return prev_tau
-
-    #     taus = [find_tau_for_k(map_p_to_target_in_pruned_pred, k_i) for k_i in k]
-
-    #     # only keep relevant data
-    #     for i in range(len(taus)):
-    #         if taus[i] != None:
-    #             taus = taus[i:]
-    #             e = e[i:]
-    #             k = k[i:]
-    #             break
-
-    #     for i in range(len(e)):
-    #         print(f"e: {e[i]} | k: {k[i]} | tau: {taus[i]}")
-
-    #     percent_nodes_removed = [100 - np.mean(map_p_to_frac_rm[taus[i]]) * 100 for i in range(len(e))]
-    #     code_coverage = [
-    #         map_p_to_target_in_pruned_pred[taus[i]][0] / map_p_to_target_in_pruned_pred[taus[i]][1] * 100
-    #         for i in range(len(e))
-    #     ]
-    #     computed.append(
-    #         {
-    #             "label": label,
-    #             "e": e,
-    #             "taus": taus,
-    #             "percent_nodes_removed": percent_nodes_removed,
-    #             "code_coverage": code_coverage,
-    #         }
-    #     )
-    #     print("finished ", label)
-    # # # e-> optimal tau
-    # create_plot_from_fn(
-    #     e,
-    #     taus,
-    #     save_title="e_optimal_tau",
-    #     xlabel="e",
-    #     ylabel="Tau",
-    #     title="Optimal Tau",
-    # )
-
-    # # # e-> Percent nodes removed
-    # create_plot_from_fn(
-    #     e,
-    #     percent_nodes_removed,
-    #     save_title="e_node_removal",
-    #     xlabel="e",
-    #     ylabel="Percentage of Nodes Removed (%)",
-    #     title="Percent Nodes Removed Over e Space",
-    # )
-
-    # # e-> Percent code coverage
-    # create_plot_from_fn(
-    #     e,
-    #     code_coverage,
-    #     save_title="e_coverage",
-    #     xlabel="e",
-    #     ylabel="Percentage of Target in Set (%)",
-    #     title="Percent Code Coverage Over e Space",
-    # )
-
     computed = []
     label_eval = [
         ("Greedy Cost Leaf Removal", "GREEDY_LEAF"),
@@ -250,40 +134,21 @@ if __name__ == "__main__":
         frac_rm = [frac_rm[i] for i in range(len(frac_rm)) if taus[i] is not None]
         taus = [t for t in taus if t is not None]
 
-        # for i in range(len(taus)):
-        #     if taus[i] != None:
-        #         taus = taus[i:]
-        #         e_used = e_used[i:]
-        #         k = k[i:]
-        #         frac_rm = frac_rm[i:]
-        #         break
-        # for i in range(len(taus)):
-        #     if taus[len(taus) - 1 - i] != None:
-        #         taus = taus[:len(taus) - i]
-        #         e_used = e_used[:len(taus) - i]
-        #         k = k[:len(taus) - i]
-        #         frac_rm = frac_rm[:len(taus) - i]
-        #         break
         print(e_used)
         print(frac_rm)
         print(taus)
         assert len(taus) == len(e_used)
         assert len(taus) == len(frac_rm)
 
-        # forward fill
-        for i in range(len(taus)):
-            idx = len(taus) - 1 - i
-            if idx + 1 < len(taus):
-                if taus[idx] is None:
-                    taus[idx] = taus[idx + 1]
-                    frac_rm[idx] = frac_rm[idx + 1]
-        computed.append({"e": e, "taus": tau, "percent_nodes_removed": frac_rm, "label": label})
+        computed.append({"e": e_used, "taus": taus, "percent_nodes_removed": frac_rm, "label": label})
 
+    print("storing data", flush=True)
     store_data("computed_create_plot.pkl", computed)
     for key, y_label, title in [
         ("taus", "Tau", "Optimal Tau"),
         ("percent_nodes_removed", "Percentage of Nodes Removed (%)", "Percent Nodes Removed Over e Space"),
     ]:
+        print("Creating plots", key, y_label, title, flush=True)
         plot_multiple_series(
             [computed[i]["e"] for i in range(len(computed))],
             [computed[i][key] for i in range(len(computed))],
