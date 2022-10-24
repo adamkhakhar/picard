@@ -100,13 +100,13 @@ def plot_multiple_series(
 if __name__ == "__main__":
     computed = []
     label_eval = [
-        ("Greedy Cost Leaf Removal", "GREEDY_LEAF"),
-        ("Optimize Tau", "PAC"),
-        ("Optimize Tau and Node Removal", "PAC_MIN_RM"),
-        ("Optimize Tau w/o Temperature Scaling", "PAC_NO_TS"),
-        ("Greedy Proportion of Leaf Removal", "PROP"),
+        # ("Greedy Cost Leaf Removal", "GREEDY_LEAF", 0),
+        # ("Optimize Tau", "PAC", 0),
+        # ("Optimize Tau and Node Removal", "PAC_MIN_RM", 0),
+        ("Optimize Tau w/o Temperature Scaling", "PAC_NO_TS", 0.00001),
+        # ("Greedy Proportion of Leaf Removal", "PROP", 0),
     ]
-    for label, eval in label_eval:
+    for label, eval, precision in label_eval:
         print(label, eval)
         e = [x / 100 for x in range(1, 50, 1)]
         n = 146
@@ -114,14 +114,16 @@ if __name__ == "__main__":
         k = [compute_k(n, e_i, d) for e_i in e]
         taus = []
         frac_rm = []
-        prev_p = 1 - 1e-6
+        prev_p = 1 - precision
         e_used = []
         for i in range(len(k)):
             k_i = k[i]
             print("k_i", k_i, "/", k[-1], flush=True)
             if k_i == None:
                 continue
-            tau, total, frac_included = find_smallest_tau_with_less_than_k_errors(eval, k_i, max_p=prev_p)
+            tau, total, frac_included = find_smallest_tau_with_less_than_k_errors(
+                eval, k_i, max_p=prev_p, precision=precision
+            )
             if tau != None:
                 assert total == n
                 taus.append(tau)
@@ -143,7 +145,7 @@ if __name__ == "__main__":
         computed.append({"e": e_used, "taus": taus, "percent_nodes_removed": frac_rm, "label": label})
 
     print("storing data", flush=True)
-    store_data("computed_create_plot.pkl", computed)
+    store_data("computed_create_plot_no_ts.pkl", computed)
     for key, y_label, title in [
         ("taus", "Tau", "Optimal Tau"),
         ("percent_nodes_removed", "Percentage of Nodes Removed (%)", "Percent Nodes Removed Over e Space"),

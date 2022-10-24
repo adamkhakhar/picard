@@ -188,10 +188,10 @@ map_eval_to_output = {}
 
 
 def find_smallest_tau_with_less_than_k_errors(eval, k, min_p=1e-6, max_p=1 - 1e-6, precision=0.001, max_num_tries=25):
-    assert precision > 0
-    max_p = min(max_p, 1 - 1e-6)
+    assert precision >= 0
+    max_p = min(max_p, 1 - precision)
     max_p = max(max_p, precision * 3)
-    min_p = max(min_p, 1e-6)
+    min_p = max(min_p, precision)
     try:
         global map_eval_to_output
         if eval not in map_eval_to_output:
@@ -214,12 +214,13 @@ def find_smallest_tau_with_less_than_k_errors(eval, k, min_p=1e-6, max_p=1 - 1e-
             elif num_incorrect_mid < k:
                 max_p = mid_p - precision
             else:
-                prev_sat = num_incorrect_mid, total_tested_mid, frac_mid
+                prev_sat = mid_p, total_tested_mid, frac_mid
                 num_incorrect_minus, total_tested_minus, frac_minus = run_algorithm_on_tau(eval, mid_p - precision)
                 if num_incorrect_minus == k and (mid_p - precision - min_p > precision):
                     max_p = mid_p - precision
                 else:
-                    return mid_p, total_tested_mid, frac_mid
+                    if precision != 0:
+                        return mid_p, total_tested_mid, frac_mid
         print("\t", prev_sat)
         return prev_sat
     except Exception:
