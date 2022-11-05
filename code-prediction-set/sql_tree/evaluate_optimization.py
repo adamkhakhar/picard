@@ -7,6 +7,9 @@ from collections import deque
 from colorama import Fore, Back, Style
 import traceback
 import argparse
+from mpmath import *
+
+mp.dps = 100
 
 PICARD_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 sys.path.append(f"{PICARD_DIR}/code-prediction-set/sql_tree")
@@ -113,13 +116,13 @@ map_eval_to_data = {}
 
 
 def run_algorithm_on_tau(eval: str, p: float):
-    assert eval in ["PAC_MIN_RM", "PAC", "GREEDY_LEAF", "PROP", "PAC_NO_TS"]
+    assert eval in ["PAC_MIN_RM", "PAC", "GREEDY_LEAF", "PROP", "PAC_NO_TS", "GREEDY_LEAF_NO_TS"]
     global map_eval_to_data
     data = None
     if eval not in map_eval_to_data:
         map_eval_to_data[eval] = load_data(
             os.path.dirname(os.path.realpath(__file__)) + "tree_with_prob_and_target.bin"
-            if eval != "PAC_NO_TS"
+            if not eval.endswith("NO_TS")
             else "tree_with_prob_and_target_no_ts.bin"
         )
     data = map_eval_to_data[eval]
@@ -133,7 +136,7 @@ def run_algorithm_on_tau(eval: str, p: float):
         target_tree = sample["target_tree"]
         target_tree = make_all_lowercase_and_remove_spaces(target_tree)
 
-        max_cost_threshold = -np.log(p)
+        max_cost_threshold = -log(p)
         pruned_pred_tree = None
         target_in_pred = (None, None)
         try:
@@ -149,7 +152,7 @@ def run_algorithm_on_tau(eval: str, p: float):
                 ) = create_tree_from_optimization_result(
                     pred_tree, max_cost_threshold, minimize_removal=eval == "PAC_MIN_RM"
                 )
-            elif eval == "GREEDY_LEAF":
+            elif eval in ["GREEDY_LEAF", "GREEDY_LEAF_NO_TS"]:
                 (
                     pruned_pred_tree,
                     entire_tree_with_deleted,
@@ -187,21 +190,28 @@ def run_algorithm_on_tau(eval: str, p: float):
 map_eval_to_output = {}
 
 
-def find_smallest_tau_with_less_than_k_errors(eval, k, min_p=1e-6, max_p=1 - 1e-6, precision=0.001, max_num_tries=25):
+def find_smallest_tau_with_less_than_k_errors(eval, k, min_p=0, max_p=1, precision=0, max_num_tries=1_000):
+    print("max_num_tries", max_num_tries, "precision", precision)
     assert precision >= 0
     max_p = min(max_p, 1 - precision)
     max_p = max(max_p, precision * 3)
     min_p = max(min_p, precision)
+    max_p = mp.mpf(max_p)
+    min_p = mp.mpf(min_p)
+    precision = mp.mpf(precision)
+    print("max_p", max_p, "min_p", min_p, flush=True)
     try:
         global map_eval_to_output
         if eval not in map_eval_to_output:
             map_eval_to_output[eval] = {}
         prev_sat = None, None, None
         num_tries = 0
-        while max_p > min_p and num_tries < max_num_tries:
+        print("max_p > min_p", max_p > min_p)
+        print("num_tries < max_num_tries", num_tries < max_num_tries)
+        while max_p >= min_p and num_tries < max_num_tries:
             num_tries += 1
             mid_p = (max_p + min_p) / 2
-            print(max_p, min_p, mid_p, flush=True)
+            print(max_p, min_p, mid_p, num_tries, flush=True)
             num_incorrect_mid, total_tested_mid, frac_mid = None, None, None
             if mid_p in map_eval_to_output[eval]:
                 num_incorrect_mid, total_tested_mid, frac_mid = map_eval_to_output[eval][mid_p]
@@ -220,7 +230,18 @@ def find_smallest_tau_with_less_than_k_errors(eval, k, min_p=1e-6, max_p=1 - 1e-
                     max_p = mid_p - precision
                 else:
                     if precision != 0:
+                        print(
+                            "exit",
+                            "num_incorrect_minus",
+                            num_incorrect_minus,
+                            "k",
+                            k,
+                            "mid_p - precision - min_p",
+                            mid_p - precision - min_p,
+                        )
                         return mid_p, total_tested_mid, frac_mid
+            print("max_p > min_p", max_p > min_p)
+            print("num_tries < max_num_tries", num_tries < max_num_tries)
         print("\t", prev_sat)
         return prev_sat
     except Exception:

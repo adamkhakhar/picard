@@ -100,11 +100,12 @@ def plot_multiple_series(
 if __name__ == "__main__":
     computed = []
     label_eval = [
-        # ("Greedy Cost Leaf Removal", "GREEDY_LEAF", 0),
-        # ("Optimize Tau", "PAC", 0),
-        # ("Optimize Tau and Node Removal", "PAC_MIN_RM", 0),
-        ("Optimize Tau w/o Temperature Scaling", "PAC_NO_TS", 0.00001),
-        # ("Greedy Proportion of Leaf Removal", "PROP", 0),
+        # ("Greedy Cost Leaf Removal", "GREEDY_LEAF", 1e-5),
+        # # ("Optimize Tau", "PAC", 0),
+        # # ("Optimize Tau and Node Removal", "PAC_MIN_RM", 0),
+        # # ("Optimize Tau w/o Temperature Scaling", "PAC_NO_TS", 0.00001),
+        # ("Greedy Proportion of Leaf Removal", "PROP", 1e-5),
+        ("Greedy Cost Leaf Removal w/o Temperature Scaling", "GREEDY_LEAF_NO_TS", 0),
     ]
     for label, eval, precision in label_eval:
         print(label, eval)
@@ -130,6 +131,7 @@ if __name__ == "__main__":
                 frac_rm.append(100 * (1 - frac_included))
                 prev_p = tau
                 e_used.append(e[i])
+            exit()
 
         # only keep relevant data
         e_used = [e_used[i] for i in range(len(e_used)) if taus[i] is not None]
@@ -145,7 +147,16 @@ if __name__ == "__main__":
         computed.append({"e": e_used, "taus": taus, "percent_nodes_removed": frac_rm, "label": label})
 
     print("storing data", flush=True)
-    store_data("computed_create_plot_no_ts.pkl", computed)
+    store_data("computed_data.pkl", computed)
+
+    # computed = load_data("/home/akhakhar/code/picard/code-prediction-set/sql_tree/computed_data.pkl")
+    # computed = computed[:-1]
+    # computed_orig = load_data("/home/akhakhar/code/picard/code-prediction-set/sql_tree/computed_create_plot.pkl")
+    # computed_orig[1]['label'] = "Integer Program, Optimize Tau"
+    # computed_orig[2]['label'] = "Integer Program, Optimize Tau and Nodes Removed"
+    # computed.append(computed_orig[1])
+    # computed.append(computed_orig[2])
+
     for key, y_label, title in [
         ("taus", "Tau", "Optimal Tau"),
         ("percent_nodes_removed", "Percentage of Nodes Removed (%)", "Percent Nodes Removed Over e Space"),
