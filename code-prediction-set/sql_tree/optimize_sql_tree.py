@@ -4,6 +4,7 @@ import numpy as np
 import ipdb
 import sys
 import os
+from typing import List
 
 PICARD_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 sys.path.append(f"{PICARD_DIR}/code-prediction-set/sql_tree")
@@ -54,9 +55,59 @@ def add_tree_constraints(o, tree):
     return ordered_probabilities, indicator_variables
 
 
+def solve_optimization_lst(tree, max_cost_threshold: List, minimize_removal=False):
+    """
+    assumes max_cost_threshold sorted in descending order
+    solves optimization problem defined in first part of  https://www.overleaf.com/project/6304f33ff542595b403d373e
+    """
+    o = Optimize()
+    assert all([max_cost_threshold[i] >= max_cost_threshold[i + 1] for i in range(len(max_cost_threshold) - 1)])
+    all_probabilities = []
+    all_indicator_variables = []
+    # add node removal constraints for each threshold
+    for curr_max_cost_threshold in max_cost_threshold:
+        probabilities, indicator_variables = add_tree_constraints(o, tree)
+        all_probabilities.append(probabilities)
+        all_indicator_variables.append(indicator_variables)
+        # add single tau level constraint
+        o.add(
+            sum([-1 * float(probabilities[i]) * indicator_variables[i] for i in range(len(indicator_variables))])
+            <= curr_max_cost_threshold
+        )
+    # add between tau level constraints
+    for i in range(len(max_cost_threshold)):
+        smaller_threshold_indicator_variables = all_indicator_variables[i]
+        larger_threshold_indicator_variables = all_indicator_variables[i + 1]
+        assert len(smaller_threshold_indicator_variables) == len(larger_threshold_indicator_variables)
+        for j in range(len(larger_threshold_indicator_variables)):
+            o.add(Implies(Not(larger_threshold_indicator_variables[j]), Not(smaller_threshold_indicator_variables[i])))
+    # add optimization
+    if not minimize_removal:
+        o.maximize(sum([-1 * probabilities[i] * indicator_variables[i] for i in range(len(indicator_variables))]))
+        o.maximize(
+            sum(
+                [
+                    sum(
+                        [
+                            -1
+                            * all_probabilities[threshold_ind][indicator_ind]
+                            * all_indicator_variables[threshold_ind][indicator_ind]
+                            for indicator_ind in range(len(all_indicator_variables[threshold_ind]))
+                        ]
+                    )
+                    for threshold_ind in range(len(max_cost_threshold))
+                ]
+            )
+        )
+    else:
+        print("min removal not supported yet")
+        raise Exception("not supported yet")
+    return o.check(), o.model()
+
+
 def solve_optimization(tree, max_cost_threshold, minimize_removal=False):
     """
-    solves optimization problem defined in https://www.overleaf.com/project/6304f33ff542595b403d373e
+    solves optimization problem defined in second part of  https://www.overleaf.com/project/6304f33ff542595b403d373e
     """
     o = Optimize()
     # add node removal constraints
@@ -74,7 +125,10 @@ def solve_optimization(tree, max_cost_threshold, minimize_removal=False):
     if not minimize_removal:
         o.maximize(sum([-1 * probabilities[i] * indicator_variables[i] for i in range(len(indicator_variables))]))
     else:
-        o.maximize(sum([-1 * probabilities[i] * indicator_variables[i] for i in range(len(indicator_variables))]) + sum([1.01 * indicator_variables[i] for i in range(len(indicator_variables))]))
+        o.maximize(
+            sum([-1 * probabilities[i] * indicator_variables[i] for i in range(len(indicator_variables))])
+            + sum([1.01 * indicator_variables[i] for i in range(len(indicator_variables))])
+        )
     return o.check(), o.model()
 
 
