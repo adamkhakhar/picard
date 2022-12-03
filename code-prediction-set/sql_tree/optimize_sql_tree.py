@@ -12,7 +12,7 @@ sys.path.append(f"{PICARD_DIR}/code-prediction-set/sql_tree")
 from generate_probability_tree_from_sexpr import ExprWithProb
 
 
-def add_tree_constraints(o, tree):
+def add_tree_constraints(o, tree, cost_id=""):
     ordered_probabilities = []
     indicator_variables = []
     map_node_to_indicator = {}
@@ -23,7 +23,11 @@ def add_tree_constraints(o, tree):
     q.append(tree)
     while len(q) > 0:
         curr_node = q.popleft()
-        curr_indicator = Bool(curr_node.name + "::" + str(node_number))
+        curr_indicator = Bool(
+            curr_node.name + "::" + str(node_number)
+            if cost_id == ""
+            else str(cost_id) + "::" + curr_node.name + "::" + str(node_number)
+        )
 
         # ignore nodes in tree without prob
         if curr_node.prob != -1 and not (np.isnan(curr_node.prob)):
@@ -66,7 +70,7 @@ def solve_optimization_lst(tree, max_cost_threshold: List, minimize_removal=Fals
     all_indicator_variables = []
     # add node removal constraints for each threshold
     for curr_max_cost_threshold in max_cost_threshold:
-        probabilities, indicator_variables = add_tree_constraints(o, tree)
+        probabilities, indicator_variables = add_tree_constraints(o, tree, cost_id=curr_max_cost_threshold)
         all_probabilities.append(probabilities)
         all_indicator_variables.append(indicator_variables)
         # add single tau level constraint
@@ -75,9 +79,9 @@ def solve_optimization_lst(tree, max_cost_threshold: List, minimize_removal=Fals
             <= curr_max_cost_threshold
         )
     # add between tau level constraints
-    for i in range(len(max_cost_threshold)):
-        smaller_threshold_indicator_variables = all_indicator_variables[i]
-        larger_threshold_indicator_variables = all_indicator_variables[i + 1]
+    for i in range(len(max_cost_threshold) - 1):
+        larger_threshold_indicator_variables = all_indicator_variables[i]
+        smaller_threshold_indicator_variables = all_indicator_variables[i + 1]
         assert len(smaller_threshold_indicator_variables) == len(larger_threshold_indicator_variables)
         for j in range(len(larger_threshold_indicator_variables)):
             o.add(Implies(Not(larger_threshold_indicator_variables[j]), Not(smaller_threshold_indicator_variables[i])))
@@ -103,6 +107,11 @@ def solve_optimization_lst(tree, max_cost_threshold: List, minimize_removal=Fals
         print("min removal not supported yet")
         raise Exception("not supported yet")
     return o.check(), o.model()
+
+
+def create_tree_from_optimization_result_lst(tree, max_cost_threshold: List, minimize_removal=False):
+    check, model = solve_optimization_lst(tree, max_cost_threshold, minimize_removal=False)
+    ipdb.set_trace()
 
 
 def solve_optimization(tree, max_cost_threshold, minimize_removal=False):

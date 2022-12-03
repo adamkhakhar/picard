@@ -9,12 +9,12 @@ import traceback
 import argparse
 from mpmath import *
 
-mp.dps = 100
+mp.dps = 20
 
 PICARD_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 sys.path.append(f"{PICARD_DIR}/code-prediction-set/sql_tree")
 
-from optimize_sql_tree import create_tree_from_optimization_result
+from optimize_sql_tree import create_tree_from_optimization_result, create_tree_from_optimization_result_lst
 from generate_probability_tree_from_sexpr import ExprWithProb
 import optimize_sql_tree_greedy_leaf
 import optimize_sql_tree_proportion_leaf
@@ -204,7 +204,7 @@ def find_smallest_tau_with_less_than_k_errors(eval, k, min_p=0, max_p=1, precisi
         global map_eval_to_output
         if eval not in map_eval_to_output:
             map_eval_to_output[eval] = {}
-        prev_sat = None, None, None
+        prev_sat = None, None, None, None
         num_tries = 0
         print("max_p > min_p", max_p > min_p)
         print("num_tries < max_num_tries", num_tries < max_num_tries)
@@ -224,7 +224,7 @@ def find_smallest_tau_with_less_than_k_errors(eval, k, min_p=0, max_p=1, precisi
             elif num_incorrect_mid < k:
                 max_p = mid_p - precision
             else:
-                prev_sat = mid_p, total_tested_mid, frac_mid
+                prev_sat = mid_p, total_tested_mid, frac_mid, num_incorrect_mid
                 num_incorrect_minus, total_tested_minus, frac_minus = run_algorithm_on_tau(eval, mid_p - precision)
                 if num_incorrect_minus == k and (mid_p - precision - min_p > precision):
                     max_p = mid_p - precision
@@ -239,7 +239,7 @@ def find_smallest_tau_with_less_than_k_errors(eval, k, min_p=0, max_p=1, precisi
                             "mid_p - precision - min_p",
                             mid_p - precision - min_p,
                         )
-                        return mid_p, total_tested_mid, frac_mid
+                        return mid_p, total_tested_mid, frac_mid, num_incorrect_minus
             print("max_p > min_p", max_p > min_p)
             print("num_tries < max_num_tries", num_tries < max_num_tries)
         print("\t", prev_sat)
@@ -247,108 +247,119 @@ def find_smallest_tau_with_less_than_k_errors(eval, k, min_p=0, max_p=1, precisi
     except Exception:
         traceback.print_exc()
         print("EXCEPTION OUTER--------------------------", flush=True)
-        return None, None, None
+        return None, None, None, None
 
 
 if __name__ == "__main__":
-    mid_p, total_tested_mid, frac_mid = find_smallest_tau_with_less_than_k_errors("GREEDY_LEAF", 0, precision=0.001)
-    print(mid_p, total_tested_mid, frac_mid)
-    # parser = argparse.ArgumentParser()
-    # parser.add_argument("--eval", dest="evaluation_type", type=str, default="PAC")
-    # parser.add_argument("--save_name", dest="save_name", type=str, default="")
+    # mid_p, total_tested_mid, frac_mid = find_smallest_tau_with_less_than_k_errors("GREEDY_LEAF", 0, precision=0.001)
+    # print(mid_p, total_tested_mid, frac_mid)
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--eval", dest="evaluation_type", type=str, default="PAC")
+    parser.add_argument("--save_name", dest="save_name", type=str, default="")
 
-    # args = parser.parse_args()
-    # args.save_name = args.evaluation_type if len(args.save_name) == 0 else args.save_name
-    # assert args.evaluation_type in ["PAC_MIN_RM", "PAC", "GREEDY_LEAF", "PROP"]
-    # data = load_data(os.path.dirname(os.path.realpath(__file__)) + "tree_with_prob_and_target.bin")
-    # evaluation = []
-    # for i, sample in enumerate(data):
-    #     print(i)
-    #     pred_tree = sample["pred_tree_with_prob"]
-    #     if pred_tree.name == "ERROR":
-    #         print("\terror")
-    #         continue
-    #     target_tree = sample["target_tree"]
-    #     target_tree = make_all_lowercase_and_remove_spaces(target_tree)
-    #     # print(pred_tree)
-    #     for p in [.99]:
-    #     # for p in [x / 100 for x in range(1, 100, 1)] + [.999, .9999, .99999, .999995, .999999, .9999995, .9999999, .99999995, .99999999]:
-    #         # for p in [.9]:
-    #         # print("p:", p)
-    #         max_cost_threshold = -np.log(p)
-    #         pruned_pred_tree = None
-    #         target_in_pred = (None, None)
-    #         try:
-    #             if args.evaluation_type in ["PAC", "PAC_MIN_RM"]:
-    #                 (
-    #                     pruned_pred_tree,
-    #                     entire_tree_with_deleted,
-    #                     map_node_name_to_include,
-    #                     check,
-    #                     model,
-    #                     error_of_tree,
-    #                     frac_included_nodes,
-    #                 ) = create_tree_from_optimization_result(pred_tree, max_cost_threshold, minimize_removal=args.evaluation_type=="PAC_MIN_RM")
-    #             elif args.evaluation_type == "GREEDY_LEAF":
-    #                 (
-    #                     pruned_pred_tree,
-    #                     entire_tree_with_deleted,
-    #                     map_node_name_to_include,
-    #                     error_of_tree,
-    #                     frac_included_nodes,
-    #                 ) = optimize_sql_tree_greedy_leaf.create_tree_from_optimization_result(
-    #                     pred_tree, max_cost_threshold
-    #                 )
-    #             elif args.evaluation_type == "PROP":
-    #                 (
-    #                     pruned_pred_tree,
-    #                     entire_tree_with_deleted,
-    #                     map_node_name_to_include,
-    #                     error_of_tree,
-    #                     frac_included_nodes,
-    #                 ) = optimize_sql_tree_proportion_leaf.create_tree_from_optimization_result(
-    #                     pred_tree, max_cost_threshold
-    #                 )
-    #             else:
-    #                 print("EVAL NOT SUPPORTED", flush=True)
-    #         except Exception:
-    #             print("EXCEPTION--------------------------")
-    #             traceback.print_exc()
-    #             exit()
-    #             # pass
-    #         pruned_pred_tree = make_all_lowercase_and_remove_spaces(pruned_pred_tree)
-    #         target_in_pred = evaluate_if_target_in_pruned_pred(pruned_pred_tree, target_tree)
-    #         # print(-1 * sum(error_of_tree), "/", max_cost_threshold, target_in_pred[0])
-    #         # if not target_in_pred[0]:
-    #         if True:
-    #             print("i", i)
-    #             # print("orig pred tree:")
-    #             # pretty_print_tree(pred_tree, include_prob=True)
-    #             if type(error_of_tree) == list:
-    #                 print(
-    #                     "pruned_pred_tree: error", round(-1 * sum(error_of_tree), 3), "/", round(max_cost_threshold, 3)
-    #                 )
-    #             else:
-    #                 print("pruned_pred_tree: error", round(error_of_tree, 3), "/", round(max_cost_threshold, 3))
-    #             print("frac_included_nodes", round(frac_included_nodes, 3))
-    #             pretty_print_tree(entire_tree_with_deleted, include_prob=True, print_deleted=True)
-    #             print("target_tree:")
-    #             pretty_print_tree(target_tree)
-    #             print("outcome:", target_in_pred)
-    #             print("\n")
+    args = parser.parse_args()
+    args.save_name = args.evaluation_type if len(args.save_name) == 0 else args.save_name
+    assert args.evaluation_type in ["Z3COMB", "PAC_MIN_RM", "PAC", "GREEDY_LEAF", "PROP"]
+    data = load_data(os.path.dirname(os.path.realpath(__file__)) + "tree_with_prob_and_target.bin")
+    evaluation = []
+    for i, sample in enumerate(data):
+        print(i)
+        pred_tree = sample["pred_tree_with_prob"]
+        if pred_tree.name == "ERROR":
+            print("\terror")
+            continue
+        target_tree = sample["target_tree"]
+        target_tree = make_all_lowercase_and_remove_spaces(target_tree)
+        # print(pred_tree)
+        taus = [0.1, 0.9, 0.999]
 
-    #         evaluation.append(
-    #             {
-    #                 "p": p,
-    #                 "max_cost_threshold": max_cost_threshold,
-    #                 "pred_tree": pred_tree,
-    #                 "pruned_pred_tree": pruned_pred_tree,
-    #                 "target_tree": target_tree,
-    #                 "target_in_pruned_pred": target_in_pred,
-    #                 "error_of_pruned_tree": -1 * sum(error_of_tree) if type(error_of_tree) == list else error_of_tree,
-    #                 "frac_included_nodes": frac_included_nodes,
-    #             }
-    #         )
+        if "COMB" in args.evaluation_type:
+            max_cost_threshold = [-np.log(p) for p in taus]
+            print(max_cost_threshold)
+            create_tree_from_optimization_result_lst(pred_tree, max_cost_threshold)
+        else:
+            for p in taus:
+                max_cost_threshold = -np.log(p)
+                pruned_pred_tree = None
+                target_in_pred = (None, None)
+                try:
+                    if args.evaluation_type in ["PAC", "PAC_MIN_RM"]:
+                        (
+                            pruned_pred_tree,
+                            entire_tree_with_deleted,
+                            map_node_name_to_include,
+                            check,
+                            model,
+                            error_of_tree,
+                            frac_included_nodes,
+                        ) = create_tree_from_optimization_result(
+                            pred_tree, max_cost_threshold, minimize_removal=args.evaluation_type == "PAC_MIN_RM"
+                        )
+                    elif args.evaluation_type == "GREEDY_LEAF":
+                        (
+                            pruned_pred_tree,
+                            entire_tree_with_deleted,
+                            map_node_name_to_include,
+                            error_of_tree,
+                            frac_included_nodes,
+                        ) = optimize_sql_tree_greedy_leaf.create_tree_from_optimization_result(
+                            pred_tree, max_cost_threshold
+                        )
+                    elif args.evaluation_type == "PROP":
+                        (
+                            pruned_pred_tree,
+                            entire_tree_with_deleted,
+                            map_node_name_to_include,
+                            error_of_tree,
+                            frac_included_nodes,
+                        ) = optimize_sql_tree_proportion_leaf.create_tree_from_optimization_result(
+                            pred_tree, max_cost_threshold
+                        )
+                    else:
+                        print("EVAL NOT SUPPORTED", flush=True)
+                except Exception:
+                    print("EXCEPTION--------------------------")
+                    traceback.print_exc()
+                    exit()
+                    # pass
+                pruned_pred_tree = make_all_lowercase_and_remove_spaces(pruned_pred_tree)
+                target_in_pred = evaluate_if_target_in_pruned_pred(pruned_pred_tree, target_tree)
+                # print(-1 * sum(error_of_tree), "/", max_cost_threshold, target_in_pred[0])
+                # if not target_in_pred[0]:
+                if True:
+                    print("i", i)
+                    # print("orig pred tree:")
+                    # pretty_print_tree(pred_tree, include_prob=True)
+                    if type(error_of_tree) == list:
+                        print(
+                            "pruned_pred_tree: error",
+                            round(-1 * sum(error_of_tree), 3),
+                            "/",
+                            round(max_cost_threshold, 3),
+                        )
+                    else:
+                        print("pruned_pred_tree: error", round(error_of_tree, 3), "/", round(max_cost_threshold, 3))
+                    print("frac_included_nodes", round(frac_included_nodes, 3))
+                    pretty_print_tree(entire_tree_with_deleted, include_prob=True, print_deleted=True)
+                    print("target_tree:")
+                    pretty_print_tree(target_tree)
+                    print("outcome:", target_in_pred)
+                    print("\n")
 
-    # print(len(data), "->", len(evaluation))
-    # store_data(os.path.dirname(os.path.realpath(__file__)) + f"/evaluation_result_{args.save_name}.bin", evaluation)
+                evaluation.append(
+                    {
+                        "p": p,
+                        "max_cost_threshold": max_cost_threshold,
+                        "pred_tree": pred_tree,
+                        "pruned_pred_tree": pruned_pred_tree,
+                        "target_tree": target_tree,
+                        "target_in_pruned_pred": target_in_pred,
+                        "error_of_pruned_tree": -1 * sum(error_of_tree)
+                        if type(error_of_tree) == list
+                        else error_of_tree,
+                        "frac_included_nodes": frac_included_nodes,
+                    }
+                )
+
+    print(len(data), "->", len(evaluation))
+    store_data(os.path.dirname(os.path.realpath(__file__)) + f"/evaluation_result_{args.save_name}.bin", evaluation)
