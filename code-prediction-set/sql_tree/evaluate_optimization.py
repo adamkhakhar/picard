@@ -270,13 +270,58 @@ if __name__ == "__main__":
             continue
         target_tree = sample["target_tree"]
         target_tree = make_all_lowercase_and_remove_spaces(target_tree)
-        # print(pred_tree)
-        taus = [0.1, 0.9, 0.999]
+
+        taus = np.linspace(1e-9, 1 - 1e-9, num=200)
 
         if "COMB" in args.evaluation_type:
-            max_cost_threshold = [-np.log(p) for p in taus]
-            print(max_cost_threshold)
-            create_tree_from_optimization_result_lst(pred_tree, max_cost_threshold)
+            try:
+                max_cost_threshold = [-np.log(p) for p in taus]
+                all_pruned_tree_data = create_tree_from_optimization_result_lst(pred_tree, max_cost_threshold)
+                for tau_ind in range(len(all_pruned_tree_data)):
+                    pruned_pred_tree = make_all_lowercase_and_remove_spaces(all_pruned_tree_data[tau_ind][0])
+                    target_in_pred = evaluate_if_target_in_pruned_pred(pruned_pred_tree, target_tree)
+                    if True:
+                        print("i", i)
+                        # print("orig pred tree:")
+                        # pretty_print_tree(pred_tree, include_prob=True)
+                        if type(all_pruned_tree_data[tau_ind][5]) == list:
+                            print(
+                                "pruned_pred_tree: error",
+                                round(-1 * sum(all_pruned_tree_data[tau_ind][5]), 3),
+                                "/",
+                                round(max_cost_threshold, 3),
+                            )
+                        else:
+                            print(
+                                "pruned_pred_tree: error",
+                                round(all_pruned_tree_data[tau_ind][5], 3),
+                                "/",
+                                round(max_cost_threshold, 3),
+                            )
+                        print("frac_included_nodes", round(all_pruned_tree_data[tau_ind][6], 3))
+                        pretty_print_tree(all_pruned_tree_data[tau_ind][1], include_prob=True, print_deleted=True)
+                        print("target_tree:")
+                        pretty_print_tree(target_tree)
+                        print("outcome:", target_in_pred)
+                        print("\n")
+                    evaluation.append(
+                        {
+                            "p": taus[tau_ind],
+                            "max_cost_threshold": max_cost_threshold[tau_ind],
+                            "pred_tree": pred_tree,
+                            "pruned_pred_tree": all_pruned_tree_data[tau_ind][0],
+                            "target_tree": target_tree,
+                            "target_in_pruned_pred": target_in_pred,
+                            "error_of_pruned_tree": -1 * sum(all_pruned_tree_data[tau_ind][5])
+                            if type(all_pruned_tree_data[tau_ind][5]) == list
+                            else all_pruned_tree_data[tau_ind][5],
+                            "frac_included_nodes": all_pruned_tree_data[tau_ind][6],
+                        }
+                    )
+            except Exception:
+                print("EXCEPTION--------------------------")
+                traceback.print_exc()
+                exit()
         else:
             for p in taus:
                 max_cost_threshold = -np.log(p)

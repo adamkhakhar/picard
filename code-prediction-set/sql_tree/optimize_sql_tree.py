@@ -106,12 +106,16 @@ def solve_optimization_lst(tree, max_cost_threshold: List, minimize_removal=Fals
     else:
         print("min removal not supported yet")
         raise Exception("not supported yet")
-    return o.check(), o.model()
+    return o.check(), o.model(), len(all_indicator_variables[0])
 
 
 def create_tree_from_optimization_result_lst(tree, max_cost_threshold: List, minimize_removal=False):
-    check, model = solve_optimization_lst(tree, max_cost_threshold, minimize_removal=False)
-    ipdb.set_trace()
+    check, model, var_per_tree = solve_optimization_lst(tree, max_cost_threshold, minimize_removal=False)
+    pruned_tree_data = []
+    tuples = [t.split(" = ") for t in str(model)[1:-1].split(",\n ")]
+    for i in range(0, len(model), var_per_tree):
+        pruned_tree_data.append(create_tree(tree, check, tuples[i : i + var_per_tree]))
+    return pruned_tree_data
 
 
 def solve_optimization(tree, max_cost_threshold, minimize_removal=False):
@@ -141,15 +145,16 @@ def solve_optimization(tree, max_cost_threshold, minimize_removal=False):
     return o.check(), o.model()
 
 
-def create_tree_from_optimization_result(tree, max_cost_threshold, minimize_removal=False):
-    # minimize_removal = True
-    check, model = solve_optimization(tree, max_cost_threshold, minimize_removal=minimize_removal)
+def create_tree(tree, check, model):
     if str(check) == "unsat":
         return None
     else:
         map_node_name_to_include = {}
-        # print(str(model))
-        tuples = [t.split(" = ") for t in str(model)[1:-1].split(",\n ")]
+        tuples = None
+        if type(model) == list:
+            tuples = model
+        else:
+            tuples = [t.split(" = ") for t in str(model)[1:-1].split(",\n ")]
         for tup in tuples:
             map_node_name_to_include[tup[0]] = tup[1] == "True"
 
@@ -207,3 +212,9 @@ def create_tree_from_optimization_result(tree, max_cost_threshold, minimize_remo
             error_of_tree,
             included_nodes / total_nodes,
         )
+
+
+def create_tree_from_optimization_result(tree, max_cost_threshold, minimize_removal=False):
+    # minimize_removal = True
+    check, model = solve_optimization(tree, max_cost_threshold, minimize_removal=minimize_removal)
+    return create_tree(tree, check, model)
