@@ -12,7 +12,7 @@ sys.path.append(f"{PICARD_DIR}/code-prediction-set/sql_tree")
 from generate_probability_tree_from_sexpr import ExprWithProb
 
 
-def add_tree_constraints(o, tree, cost_id=""):
+def add_tree_constraints(o, tree, cost_id="", m=-1):
     ordered_probabilities = []
     indicator_variables = []
     map_node_to_indicator = {}
@@ -56,10 +56,19 @@ def add_tree_constraints(o, tree, cost_id=""):
     assert len(ordered_probabilities) == len(indicator_variables)
     # make sure all float
     ordered_probabilities = [p if type(p) == float else p - 1e-7 for p in ordered_probabilities]
+
+    # if m != -1:
+    #     HOLE_FLOAT = 1-1e-5
+    #     # iterate through nodes and add constraint for number of holes
+    #     sum_holes = 0
+    #     for node in map_node_to_indicator:
+    #         for child_node in node.children:
+    #             sum_holes += HOLE_FLOAT * Not(map_node_to_indicator[node]) * map_node_to_indicator[child_node] if node in map_node_to_indicator and child_node in map_node_to_indicator else 0
+    #     o.add(sum_holes <= m)
     return ordered_probabilities, indicator_variables
 
 
-def solve_optimization_lst(tree, max_cost_threshold: List, minimize_removal=False):
+def solve_optimization_lst(tree, m, max_cost_threshold: List, minimize_removal=False):
     """
     assumes max_cost_threshold sorted in descending order
     solves optimization problem defined in first part of  https://www.overleaf.com/project/6304f33ff542595b403d373e
@@ -70,7 +79,7 @@ def solve_optimization_lst(tree, max_cost_threshold: List, minimize_removal=Fals
     all_indicator_variables = []
     # add node removal constraints for each threshold
     for curr_max_cost_threshold in max_cost_threshold:
-        probabilities, indicator_variables = add_tree_constraints(o, tree, cost_id=curr_max_cost_threshold)
+        probabilities, indicator_variables = add_tree_constraints(o, tree, cost_id=curr_max_cost_threshold, m=m)
         all_probabilities.append(probabilities)
         all_indicator_variables.append(indicator_variables)
         # add single tau level constraint
@@ -84,7 +93,7 @@ def solve_optimization_lst(tree, max_cost_threshold: List, minimize_removal=Fals
         smaller_threshold_indicator_variables = all_indicator_variables[i + 1]
         assert len(smaller_threshold_indicator_variables) == len(larger_threshold_indicator_variables)
         for j in range(len(larger_threshold_indicator_variables)):
-            o.add(Implies(Not(larger_threshold_indicator_variables[j]), Not(smaller_threshold_indicator_variables[i])))
+            o.add(Implies(Not(larger_threshold_indicator_variables[j]), Not(smaller_threshold_indicator_variables[j])))
     # add optimization
     if not minimize_removal:
         o.maximize(sum([-1 * probabilities[i] * indicator_variables[i] for i in range(len(indicator_variables))]))
@@ -109,10 +118,14 @@ def solve_optimization_lst(tree, max_cost_threshold: List, minimize_removal=Fals
     return o.check(), o.model(), len(all_indicator_variables[0])
 
 
-def create_tree_from_optimization_result_lst(tree, max_cost_threshold: List, minimize_removal=False):
-    check, model, var_per_tree = solve_optimization_lst(tree, max_cost_threshold, minimize_removal=False)
+def create_tree_from_optimization_result_lst(tree, m, max_cost_threshold: List, minimize_removal=False):
+    check, model, var_per_tree = solve_optimization_lst(tree, m, max_cost_threshold, minimize_removal=False)
     pruned_tree_data = []
-    tuples = [t.split(" = ") for t in str(model)[1:-1].split(",\n ")]
+    tuples = []
+    for i in range(model.__len__()):
+        key = model.__getitem__(i)
+        value = model.get_interp(key)
+        tuples.append([str(key), str(value)])
     for i in range(0, len(model), var_per_tree):
         pruned_tree_data.append(create_tree(tree, check, tuples[i : i + var_per_tree]))
     return pruned_tree_data
@@ -151,14 +164,17 @@ def create_tree(tree, check, model):
     else:
         map_node_name_to_include = {}
         tuples = None
+        print(model)
         if type(model) == list:
             tuples = model
         else:
             tuples = [t.split(" = ") for t in str(model)[1:-1].split(",\n ")]
         for tup in tuples:
-            map_node_name_to_include[tup[0]] = tup[1] == "True"
-
-        # print(map_node_name_to_include)
+            if tup[0].count("::") >= 2:
+                tup[0] = tup[0][tup[0].index("::") + 2 :]
+            if len(tup) == 2:
+                map_node_name_to_include[tup[0]] = tup[1] == "True"
+        print("Nodes Included", sum([map_node_name_to_include[key] for key in map_node_name_to_include]))
 
         included_nodes = 0
         total_nodes = 0
