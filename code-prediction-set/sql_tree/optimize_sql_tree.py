@@ -47,24 +47,41 @@ def add_tree_constraints(o, tree, cost_id="", m=-1):
             map_node_to_indicator[curr_node] if curr_node in map_node_to_indicator else parent_indicator
         )
         for c in curr_node.children:
-            child_indicator_variable = (
-                map_node_to_indicator[c] if c in map_node_to_indicator else curr_indicator_variable
-            )
-            o.add(Implies(child_indicator_variable, curr_indicator_variable))
+            if c in map_node_to_indicator:
+                child_indicator_variable = map_node_to_indicator[c]
+                o.add(Implies(child_indicator_variable, curr_indicator_variable))
+                # print("implication: child: " + c.name + " ->  parent: " + curr_node.name)
+            else:
+                for grand_child in c.children:
+                    if grand_child in map_node_to_indicator:
+                        child_indicator_variable = map_node_to_indicator[grand_child]
+                        o.add(Implies(child_indicator_variable, curr_indicator_variable))
+                        # print("implication: grandchild: " + grand_child.name + " ->  parent: " + curr_node.name)
             q.append((c, curr_indicator_variable))
 
     assert len(ordered_probabilities) == len(indicator_variables)
     # make sure all float
     ordered_probabilities = [p if type(p) == float else p - 1e-7 for p in ordered_probabilities]
 
-    # if m != -1:
-    #     HOLE_FLOAT = 1-1e-5
-    #     # iterate through nodes and add constraint for number of holes
-    #     sum_holes = 0
-    #     for node in map_node_to_indicator:
-    #         for child_node in node.children:
-    #             sum_holes += HOLE_FLOAT * Not(map_node_to_indicator[node]) * map_node_to_indicator[child_node] if node in map_node_to_indicator and child_node in map_node_to_indicator else 0
-    #     o.add(sum_holes <= m)
+    if m != -1:
+        HOLE_FLOAT = 0.99999
+        # iterate through nodes and add constraint for number of holes
+        sum_holes = 0
+        for node in map_node_to_indicator:
+            # print("parent|", node.name)
+            for c in node.children:
+                pass_down_children = [c]
+                for child_node in pass_down_children:
+                    if child_node not in map_node_to_indicator:
+                        pass_down_children += child_node.children
+                    else:
+                        # print("\tchild|", child_node.name if child_node in map_node_to_indicator else "(not in map):" + child_node.name)
+                        sum_holes += (
+                            HOLE_FLOAT * Not(map_node_to_indicator[node]) * map_node_to_indicator[child_node]
+                            if node in map_node_to_indicator and child_node in map_node_to_indicator
+                            else 0
+                        )
+        o.add(sum_holes <= m)
     return ordered_probabilities, indicator_variables
 
 
@@ -125,9 +142,19 @@ def create_tree_from_optimization_result_lst(tree, m, max_cost_threshold: List, 
     for i in range(model.__len__()):
         key = model.__getitem__(i)
         value = model.get_interp(key)
-        tuples.append([str(key), str(value)])
-    for i in range(0, len(model), var_per_tree):
-        pruned_tree_data.append(create_tree(tree, check, tuples[i : i + var_per_tree]))
+        tuples.append((str(key), str(value)))
+    map_tau_to_vars = {}
+    for key, value in tuples:
+        curr_tau = key.split("::")[0]
+        if curr_tau not in map_tau_to_vars:
+            map_tau_to_vars[curr_tau] = []
+        map_tau_to_vars[curr_tau].append([key, value])
+    l_tau_tuple = []
+    for curr_tau in map_tau_to_vars:
+        l_tau_tuple.append((curr_tau, map_tau_to_vars[curr_tau]))
+    l_tau_tuple.sort(key=lambda x: -float(x[0]))
+    for tau, tuples in l_tau_tuple:
+        pruned_tree_data.append(create_tree(tree, check, tuples))
     return pruned_tree_data
 
 
